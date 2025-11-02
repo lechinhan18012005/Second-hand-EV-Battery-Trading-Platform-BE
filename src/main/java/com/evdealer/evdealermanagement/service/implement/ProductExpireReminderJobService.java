@@ -6,6 +6,7 @@ import com.evdealer.evdealermanagement.entity.product.Product;
 import com.evdealer.evdealermanagement.repository.AccountRepository;
 import com.evdealer.evdealermanagement.repository.NotificationRepository;
 import com.evdealer.evdealermanagement.repository.ProductRepository;
+import com.evdealer.evdealermanagement.repository.PurchaseRequestRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -67,7 +68,7 @@ public class ProductExpireReminderJobService {
                 //1. Gửi thông báo trong web
                 notificationService.createAndPush(p.getSeller().getId(),
                         "Tin đăng sắp hết hạn",
-                        String.format("Tin đăng \"%s\" sẽ hết hạn vào %s (còn %d ngày.) " + "Vui lòng gia hạn để tiếp tục hiển thị.", p.getTitle(), expiryDateStr, daysLeft),
+                        String.format("Tin đăng %s sẽ hết hạn vào %s (còn %d ngày.) " + "Vui lòng gia hạn để tiếp tục hiển thị.", p.getTitle(), expiryDateStr, daysLeft),
                         Notification.NotificationType.PRODUCT_EXPIRE_SOON, p.getId());
 
                 //2. Gửi email
@@ -78,6 +79,7 @@ public class ProductExpireReminderJobService {
 
                 //3. Đánh giá đã gửi thong báo
                  p.setRemindBefore2Sent(true);
+                 productRepository.save(p);
                  successCount++;
             } catch (Exception e) {
                 failCount++;
@@ -88,6 +90,9 @@ public class ProductExpireReminderJobService {
         log.info("=== Job Completed: Success={}, Failed={} ===", successCount, failCount);
 
     }
+
+
+
 
     @Scheduled(cron = "0 30 0 * * *", zone = "Asia/Ho_Chi_Minh")
     @Transactional
@@ -102,6 +107,7 @@ public class ProductExpireReminderJobService {
         for (Product p : expiredProducts) {
             try {
                 p.setStatus(Product.Status.EXPIRED);
+                productRepository.save(p);
                 log.info("Hidden expired product: {} (ID: {})", p.getTitle(), p.getId());
             } catch (Exception e) {
                 log.error("Failed to hide product {}: {}", p.getId(), e.getMessage());
@@ -109,5 +115,7 @@ public class ProductExpireReminderJobService {
         }
         log.info("=== Hide Job Completed ===");
     }
+
+
 
 }

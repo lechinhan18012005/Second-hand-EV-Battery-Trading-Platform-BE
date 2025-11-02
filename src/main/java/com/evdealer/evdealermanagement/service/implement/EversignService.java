@@ -4,6 +4,7 @@ import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;
 import com.evdealer.evdealermanagement.dto.transactions.ContractInfoDTO;
 import com.evdealer.evdealermanagement.entity.account.Account;
+import com.evdealer.evdealermanagement.entity.notify.Notification;
 import com.evdealer.evdealermanagement.entity.product.Product;
 import com.evdealer.evdealermanagement.entity.transactions.ContractDocument;
 import com.evdealer.evdealermanagement.entity.transactions.PurchaseRequest;
@@ -37,6 +38,7 @@ public class EversignService {
     private final PurchaseRequestRepository purchaseRequestRepository;
     private final ProductRepository productRepository;
     private final EmailService emailService;
+    private final NotificationService notificationService;
 
     // CLoudinary config
     @Value("${CLOUDINARY_CLOUD_NAME}")
@@ -240,6 +242,29 @@ public class EversignService {
 
         purchaseRequestRepository.save(request);
         log.info("✅ Cập nhật trạng thái hợp đồng thành COMPLETED cho request: {}", request.getId());
+
+        //Notification cho cả buyer và seller
+        String content = String.format("Giao dịch %s đã hoàn tất. Cảm ơn bạn!",
+                request.getProduct().getTitle());
+
+        try {
+            notificationService.createAndPush(
+                    request.getBuyer().getId(),
+                    "Giao dịch hoàn tất",
+                    content,
+                    Notification.NotificationType.PURCHASE_REQUEST_COMPLETED,
+                    request.getId()
+            );
+            notificationService.createAndPush(
+                    request.getSeller().getId(),
+                    "Giao dịch hoàn tất",
+                    content,
+                    Notification.NotificationType.PURCHASE_REQUEST_COMPLETED,
+                    request.getId()
+            );
+        } catch (Exception e) {
+            log.warn("Failed to create notifications: {}", e.getMessage());
+        }
 
         Product product = request.getProduct();
         if (product != null) {

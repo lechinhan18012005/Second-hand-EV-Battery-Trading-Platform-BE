@@ -182,12 +182,6 @@ public class EmailService {
     // ==============================================
     @Async
     public void sendProductExpireSoon(String to, String productTitle, LocalDateTime expiresAt) {
-        try {
-            MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-
-            helper.setTo(to);
-            helper.setSubject("Nhắc nhở: Sản phẩm sắp hết hạn");
 
             Context context = new Context();
             context.setVariable("productTitle", productTitle);
@@ -200,13 +194,8 @@ public class EmailService {
             context.setVariable("daysLeft", daysLeft);
 
             String htmlContent = templateEngine.process("email/product-expire-soon", context);
-            helper.setText(htmlContent, true);
-
-            mailSender.send(message);
+            sendEmail(to, "Nhắc nhở: Sản phẩm sắp hết hạn", htmlContent);
             log.info("📩 Product expire reminder sent to {}", to);
-        } catch (MessagingException e) {
-            log.error("❌ Failed to send product expiry email: {}", e.getMessage());
-        }
     }
 
     // ==============================================

@@ -2,6 +2,7 @@ package com.evdealer.evdealermanagement.service.implement;
 
 import com.evdealer.evdealermanagement.dto.transactions.*;
 import com.evdealer.evdealermanagement.entity.account.Account;
+import com.evdealer.evdealermanagement.entity.notify.Notification;
 import com.evdealer.evdealermanagement.entity.product.Product;
 import com.evdealer.evdealermanagement.entity.transactions.PurchaseRequest;
 import com.evdealer.evdealermanagement.repository.ProductRepository;
@@ -29,6 +30,7 @@ public class PurchaseRequestService {
     private final UserContextService userContextService;
     private final EversignService eversignService;
     private final EmailService emailService;
+    private final NotificationService notificationService;
 
     // -----------------------------
     // 1️⃣ Buyer gửi yêu cầu mua
@@ -192,6 +194,22 @@ public class PurchaseRequestService {
                 PurchaseRequest saved = purchaseRequestRepository.save(request);
                 eversignService.createAndSaveContractDocument(saved);
                 sendContractEmails(saved, contractInfo);
+
+                //THÊM: Notification cho buyer
+                try {
+                    notificationService.createAndPush(
+                            request.getBuyer().getId(),
+                            "Yêu cầu mua đã được chấp nhận",
+                            String.format("%s đã chấp nhận yêu cầu cho %s. Vui lòng ký hợp đồng điện tử.",
+                                    request.getSeller().getFullName(),
+                                    request.getProduct().getTitle()),
+                            Notification.NotificationType.PURCHASE_REQUEST_ACCEPTED,
+                            request.getId()
+                    );
+                } catch (Exception e) {
+                    log.warn("Failed to create notification: {}", e.getMessage());
+                }
+
                 return mapToResponse(saved);
             } else {
                 throw new IllegalStateException("Eversign API returned missing contract info");
@@ -243,6 +261,24 @@ public class PurchaseRequestService {
             );
         } catch (Exception e) {
             log.warn("Failed to send rejection email: {}", e.getMessage());
+        }
+
+        //Notification cho buyer
+        try {
+            String reason = (rejectReason == null || rejectReason.isBlank())
+                    ? "Không có lý do cụ thể" : rejectReason;
+            notificationService.createAndPush(
+                    request.getBuyer().getId(),
+                    "Yêu cầu mua bị từ chối",
+                    String.format("%s đã từ chối yêu cầu cho %s. Lý do: %s",
+                            request.getSeller().getFullName(),
+                            request.getProduct().getTitle(),
+                            reason),
+                    Notification.NotificationType.PURCHASE_REQUEST_REJECTED,
+                    request.getId()
+            );
+        } catch (Exception e) {
+            log.warn("Failed to create notification: {}", e.getMessage());
         }
 
         return mapToResponse(saved);
