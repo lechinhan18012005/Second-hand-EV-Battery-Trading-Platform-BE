@@ -1,6 +1,7 @@
 package com.evdealer.evdealermanagement.service.implement;
 
 import com.evdealer.evdealermanagement.dto.account.custom.CustomAccountDetails;
+import com.evdealer.evdealermanagement.dto.common.PageResponse;
 import com.evdealer.evdealermanagement.dto.product.detail.ProductDetail;
 import com.evdealer.evdealermanagement.dto.revenue.MonthlyRevenue;
 import com.evdealer.evdealermanagement.entity.account.Account;
@@ -17,6 +18,8 @@ import com.evdealer.evdealermanagement.utils.VietNamDatetime;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -58,26 +61,28 @@ public class AdminService {
         }
     }
 
-    public List<Account> getMemberAccounts() {
-        return getAccountsByRole(Account.Role.MEMBER);
+    public PageResponse<Account> getMemberAccounts(Pageable pageable) {
+        return getAccountsByRole(Account.Role.MEMBER,  pageable);
     }
 
-    public List<Account> getStaffAccounts() {
-        return getAccountsByRole(Account.Role.STAFF);
+    public PageResponse<Account> getStaffAccounts(Pageable pageable) {
+        return getAccountsByRole(Account.Role.STAFF, pageable);
     }
 
-    public List<Account> getAccountsByRole(Account.Role role) {
+    public PageResponse<Account> getAccountsByRole(Account.Role role, Pageable pageable) {
         try {
-            List<Account> accountList = accountRepository.findByRole(role)
-                    .stream()
-                    .sorted(Comparator.comparing(Account::getCreatedAt))
-                    .toList();
+            Page<Account> accountList = accountRepository.findByRole(role, pageable);
+
+            List<Account> sortedList = new ArrayList<>(accountList.getContent());
+            sortedList.sort(Comparator.comparing(Account::getCreatedAt));
+
+            PageResponse<Account> pageResponse = PageResponse.of(sortedList, accountList);
 
             log.debug("Fetching all accounts with role: {}", role);
-            return accountList;
+            return pageResponse;
         } catch (Exception e) {
             log.error("Error fetching accounts with role: {}", role, e);
-            return List.of();
+            return PageResponse.of(List.of(), 0, 0, 0);
         }
     }
 

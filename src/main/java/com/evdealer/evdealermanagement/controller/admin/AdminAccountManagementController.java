@@ -6,12 +6,16 @@ import com.evdealer.evdealermanagement.dto.account.delete.DeleteRequest;
 import com.evdealer.evdealermanagement.dto.account.register.AccountRegisterRequest;
 import com.evdealer.evdealermanagement.dto.account.register.AccountRegisterResponse;
 import com.evdealer.evdealermanagement.dto.account.response.ApiResponse;
+import com.evdealer.evdealermanagement.dto.common.PageResponse;
 import com.evdealer.evdealermanagement.entity.account.Account;
 import com.evdealer.evdealermanagement.exceptions.ErrorCode;
 import com.evdealer.evdealermanagement.service.implement.AdminService;
 import com.evdealer.evdealermanagement.service.implement.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -31,14 +35,14 @@ public class AdminAccountManagementController {
 
     @GetMapping("/manage/account/member")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<List<Account>> getMemberAccount() {
-        return ResponseEntity.ok(adminService.getMemberAccounts());
+    public ResponseEntity<PageResponse<Account>> getMemberAccount(@PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        return ResponseEntity.ok(adminService.getMemberAccounts(pageable));
     }
 
     @GetMapping("/manage/account/staff")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<List<Account>> getStaffAccount() {
-        return ResponseEntity.ok(adminService.getStaffAccounts());
+    public ResponseEntity<PageResponse<Account>> getStaffAccount(@PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        return ResponseEntity.ok(adminService.getStaffAccounts(pageable));
     }
 
     @DeleteMapping("/manage/account/{id}")

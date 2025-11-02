@@ -1,6 +1,8 @@
 package com.evdealer.evdealermanagement.repository;
 
 import com.evdealer.evdealermanagement.entity.account.Account;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -35,7 +37,7 @@ public interface AccountRepository extends JpaRepository<Account, String> {
     @Query("SELECT a.phone FROM  Account  a WHERE  a.id = :accountId")
     String getPhone(@Param("accountId") String accountId);
 
-    List<Account> findByRole(Account.Role role);
+    Page<Account> findByRole(Account.Role role, Pageable pageable);
 
     long countByRole(Account.Role role);
 
