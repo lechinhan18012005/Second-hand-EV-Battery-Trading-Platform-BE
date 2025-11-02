@@ -69,6 +69,7 @@ public class MemberService {
         }
 
         product.setStatus(Product.Status.SOLD);
+        product.setUpdatedAt(VietNamDatetime.nowVietNam());
         productRepository.save(product);
 
         return ProductStatusResponse.builder()

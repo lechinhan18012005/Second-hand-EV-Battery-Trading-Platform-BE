@@ -237,8 +237,8 @@ public class EversignService {
         request.setContractStatus(PurchaseRequest.ContractStatus.COMPLETED);
         request.setStatus(PurchaseRequest.RequestStatus.CONTRACT_SIGNED);
         // Có thể cập nhật thời gian ký ở đây nếu cần
-        if (request.getBuyerSignedAt() == null) request.setBuyerSignedAt(LocalDateTime.now());
-        if (request.getSellerSignedAt() == null) request.setSellerSignedAt(LocalDateTime.now());
+        if (request.getBuyerSignedAt() == null) request.setBuyerSignedAt(VietNamDatetime.nowVietNam());
+        if (request.getSellerSignedAt() == null) request.setSellerSignedAt(VietNamDatetime.nowVietNam());
 
         purchaseRequestRepository.save(request);
         log.info("✅ Cập nhật trạng thái hợp đồng thành COMPLETED cho request: {}", request.getId());
