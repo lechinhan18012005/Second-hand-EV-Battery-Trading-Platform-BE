@@ -2,6 +2,7 @@ package com.evdealer.evdealermanagement.entity.transactions;
 
 import com.evdealer.evdealermanagement.entity.account.Account;
 import com.evdealer.evdealermanagement.entity.product.Product;
+import com.evdealer.evdealermanagement.utils.VietNamDatetime;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -97,7 +98,7 @@ public class PurchaseRequest {
             id = java.util.UUID.randomUUID().toString();
         }
         if (createdAt == null) {
-            createdAt = LocalDateTime.now();
+            createdAt = VietNamDatetime.nowVietNam();
         }
         if (status == null) {
             status = RequestStatus.PENDING;

@@ -82,4 +82,41 @@ public class RevenueService {
         }
     }
 
+    public List<MonthlyRevenue> getMonthlyRevenueOfYear(String yearStr) {
+        try {
+            int year = Integer.parseInt(yearStr);
+
+            if (year < 1900 || year > 3000) {
+                log.warn("Invalid year input: {}", year);
+                return List.of();
+            }
+
+            List<PostPayment> paymentList = postPaymentRepository.findAll();
+
+            Map<Integer, BigDecimal> revenueMonth = paymentList.stream()
+                    .filter(p -> p.getCreatedAt() != null)
+                    .filter(p -> p.getCreatedAt().getYear() == year)
+                    .collect(Collectors.groupingBy(
+                            p -> p.getCreatedAt().getMonthValue(),
+                            Collectors.reducing(BigDecimal.ZERO, PostPayment::getAmount, BigDecimal::add)
+                    ));
+            List<MonthlyRevenue> revenueList =
+                    java.util.stream.IntStream.rangeClosed(1, 12)
+                            .mapToObj(month -> new MonthlyRevenue(
+                                    year,
+                                    month,
+                                    revenueMonth.getOrDefault(month, BigDecimal.ZERO)
+                            ))
+                            .toList();
+            log.debug("Monthly revenue for year {}: {}", year, revenueList);
+            return revenueList;
+
+        } catch (NumberFormatException e) {
+            log.error("Invalid year format: {}", yearStr, e);
+            return List.of();
+        } catch (Exception e) {
+            log.error("Error calculating monthly revenue for year: {}", yearStr, e);
+            return List.of();
+        }
+    }
 }

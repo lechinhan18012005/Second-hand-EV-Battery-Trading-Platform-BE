@@ -2,6 +2,7 @@ package com.evdealer.evdealermanagement.service.implement;
 
 import java.time.LocalDateTime;
 
+import com.evdealer.evdealermanagement.utils.VietNamDatetime;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import com.evdealer.evdealermanagement.dto.account.password.PasswordResponse;
@@ -53,7 +54,7 @@ public class ChangePasswordService {
         // 3) Cập nhật hash
         String newHash = passwordEncoder.encode(req.getNewPassword());
         acc.setPasswordHash(newHash);
-        acc.setUpdatedAt(LocalDateTime.now());
+        acc.setUpdatedAt(VietNamDatetime.nowVietNam());
         accountRepository.save(acc);
 
         return PasswordResponse.builder()

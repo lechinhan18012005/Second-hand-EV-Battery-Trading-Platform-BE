@@ -8,6 +8,7 @@ import com.evdealer.evdealermanagement.entity.transactions.PurchaseRequest;
 import com.evdealer.evdealermanagement.repository.ProductRepository;
 import com.evdealer.evdealermanagement.repository.PurchaseRequestRepository;
 import com.evdealer.evdealermanagement.utils.CurrencyFormatter;
+import com.evdealer.evdealermanagement.utils.VietNamDatetime;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -69,6 +70,8 @@ public class PurchaseRequestService {
         );
 
         if (alreadyRequest) {
+            log.warn("Duplicate purchase request detected for buyer={} and product={}",
+                    buyer.getId(), product.getId());
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Bạn đã gửi yêu cầu mua sản phẩm này rồi. Vui lòng chờ người bán phản hồi.");
         }

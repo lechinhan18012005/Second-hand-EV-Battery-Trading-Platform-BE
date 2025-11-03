@@ -11,6 +11,7 @@ import com.evdealer.evdealermanagement.service.contract.IAccountService;
 
 import java.time.LocalDateTime;
 
+import com.evdealer.evdealermanagement.utils.VietNamDatetime;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -48,7 +49,7 @@ public class ProfileService implements IAccountService {
         }
 
         AccountMapper.updateAccountFromRequest(accountRequest, existingAccount);
-        existingAccount.setUpdatedAt(LocalDateTime.now());
+        existingAccount.setUpdatedAt(VietNamDatetime.nowVietNam());
 
         Account saved = accountRepository.save(existingAccount);
         return AccountMapper.mapToAccountProfileResponse(saved);

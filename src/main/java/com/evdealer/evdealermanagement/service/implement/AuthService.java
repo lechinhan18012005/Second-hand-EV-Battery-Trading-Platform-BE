@@ -9,6 +9,7 @@ import com.evdealer.evdealermanagement.exceptions.AppException;
 import com.evdealer.evdealermanagement.exceptions.ErrorCode;
 import com.evdealer.evdealermanagement.repository.AccountRepository;
 import com.evdealer.evdealermanagement.utils.Utils;
+import com.evdealer.evdealermanagement.utils.VietNamDatetime;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -101,6 +102,8 @@ public class AuthService {
                 .passwordHash(hashedPassword)
                 .address(request.getAddress())
                 .email(null)
+                .createdAt(VietNamDatetime.nowVietNam())
+                .updatedAt(VietNamDatetime.nowVietNam())
                 .build();
 
         Account saved = accountRepository.save(account);
@@ -156,6 +159,8 @@ public class AuthService {
                 .passwordHash(hashedPassword)
                 .address(request.getAddress())
                 .email(null)
+                .createdAt(VietNamDatetime.nowVietNam())
+                .updatedAt(VietNamDatetime.nowVietNam())
                 .build();
 
         Account saved = accountRepository.save(account);

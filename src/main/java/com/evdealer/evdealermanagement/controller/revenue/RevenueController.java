@@ -26,4 +26,9 @@ public class RevenueController {
     public List<YearlyRevenue> getRevenueByYear() {
         return revenueService.getTotalRevenueByYear();
     }
+
+    @GetMapping("/year/{year}/monthly")
+    public List<MonthlyRevenue> getMonthlyRevenueOfYear(@PathVariable String year) {
+        return revenueService.getMonthlyRevenueOfYear(year);
+    }
 }

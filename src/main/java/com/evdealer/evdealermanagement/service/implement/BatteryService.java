@@ -16,6 +16,7 @@ import com.evdealer.evdealermanagement.exceptions.AppException;
 import com.evdealer.evdealermanagement.exceptions.ErrorCode;
 import com.evdealer.evdealermanagement.mapper.battery.BatteryMapper;
 import com.evdealer.evdealermanagement.repository.*;
+import com.evdealer.evdealermanagement.utils.VietNamDatetime;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Sort;
@@ -255,7 +256,7 @@ public class BatteryService {
             product.setDistrict(request.getDistrict());
             product.setWard(request.getWard());
             product.setAddressDetail(request.getAddressDetail());
-            product.setUpdatedAt(LocalDateTime.now());
+            product.setUpdatedAt(VietNamDatetime.nowVietNam());
 
             details.setProduct(product);
             details.setBrand(batteryBrandsRepository.findById(request.getBrandId())

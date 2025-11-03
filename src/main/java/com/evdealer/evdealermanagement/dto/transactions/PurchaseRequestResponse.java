@@ -1,6 +1,8 @@
 package com.evdealer.evdealermanagement.dto.transactions;
 
 import com.evdealer.evdealermanagement.entity.transactions.PurchaseRequest;
+import com.evdealer.evdealermanagement.utils.PriceSerializer;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -17,6 +19,8 @@ public class PurchaseRequestResponse {
     private String id;
     private String productId;
     private String productTitle;
+
+    @JsonSerialize(using = PriceSerializer.class)
     private BigDecimal productPrice;
 
     private String buyerId;
@@ -29,7 +33,9 @@ public class PurchaseRequestResponse {
     private String sellerEmail;
     private String sellerPhone;
 
+    @JsonSerialize(using = PriceSerializer.class)
     private BigDecimal offeredPrice;
+
     private String buyerMessage;
     private String sellerResponseMessage;
 

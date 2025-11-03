@@ -1,5 +1,7 @@
 package com.evdealer.evdealermanagement.dto.transactions;
 
+import com.evdealer.evdealermanagement.utils.PriceSerializer;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
