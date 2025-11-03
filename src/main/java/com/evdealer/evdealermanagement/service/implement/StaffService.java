@@ -1,5 +1,6 @@
 package com.evdealer.evdealermanagement.service.implement;
 
+import com.cloudinary.api.exceptions.ApiException;
 import com.evdealer.evdealermanagement.dto.post.verification.PostVerifyResponse;
 import com.evdealer.evdealermanagement.dto.rate.ApprovalRateResponse;
 import com.evdealer.evdealermanagement.dto.transactions.ContractInfoDTO;
@@ -22,13 +23,12 @@ import com.evdealer.evdealermanagement.mapper.post.PostVerifyMapper;
 import com.evdealer.evdealermanagement.mapper.vehicle.VehicleCatalogMapper;
 import com.evdealer.evdealermanagement.repository.*;
 
+import com.evdealer.evdealermanagement.utils.VietNamDatetime;
 import org.springframework.data.domain.Pageable;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.extern.slf4j.Slf4j;
 
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
+import java.time.*;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
@@ -308,6 +308,32 @@ public class StaffService {
 
         long decided = approved + rejected;
         double rate = decided == 0 ? 0.0 : ((double) approved) / decided;
+        String rateText = String.format(Locale.US, "%.2f%%", rate * 100.0);
+
+        return ApprovalRateResponse.builder()
+                .approved(approved)
+                .rejected(rejected)
+                .total(decided)
+                .rate(rate)
+                .rateText(rateText)
+                .build();
+    }
+
+    @Transactional(readOnly = true)
+    public ApprovalRateResponse getApprovalRateByDate(LocalDate date) {
+        if(date == null) {
+            throw new AppException(ErrorCode.DATE_MUST_REQUIRED);
+        }
+
+        LocalDateTime startOfDay = date.atStartOfDay(VIETNAM_ZONE).toLocalDateTime();
+        LocalDateTime endOfDay = date.atTime(LocalTime.MAX).atZone(VIETNAM_ZONE).toLocalDateTime();
+
+        long approved = productRepository.countByStatusAndUpdatedAtBetween(Product.Status.ACTIVE, startOfDay, endOfDay);
+        long rejected = productRepository.countByStatusAndUpdatedAtBetween(Product.Status.REJECTED, startOfDay, endOfDay);
+
+        long decided = approved + rejected;
+
+        double rate = decided == 0 ? 0.0 : (double) approved / decided;
         String rateText = String.format(Locale.US, "%.2f%%", rate * 100.0);
 
         return ApprovalRateResponse.builder()

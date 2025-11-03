@@ -133,8 +133,10 @@ public enum ErrorCode {
     OAUTH2_FACEBOOK_PROCESS_FAILED(1902, "Error processing Facebook login", HttpStatus.BAD_REQUEST),
 
     //-NOTIFICATION (2000-3000)
-    NO_READ_NOTIFICATIONS(2000, "Unread notifications", HttpStatus.BAD_REQUEST);
+    NO_READ_NOTIFICATIONS(2000, "Unread notifications", HttpStatus.BAD_REQUEST),
 
+    //-APPROVAL (3100-3200)
+    DATE_MUST_REQUIRED(3100, "Date is required", HttpStatus.BAD_REQUEST);
 
     private final int code;
     private final String message;

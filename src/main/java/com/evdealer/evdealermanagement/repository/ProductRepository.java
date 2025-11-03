@@ -67,6 +67,8 @@ public interface ProductRepository extends JpaRepository<Product, String>, JpaSp
 
     long countByStatus(Product.Status status);
 
+    long countByStatusAndUpdatedAtBetween(Product.Status status, LocalDateTime start, LocalDateTime end);
+
     @Query("SELECT p FROM Product p WHERE p.status = :status AND p.remindBefore2Sent = false AND p.expiresAt BETWEEN :start AND :end")
     List<Product> findExpiringBetween(@Param("status") Product.Status status, @Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
