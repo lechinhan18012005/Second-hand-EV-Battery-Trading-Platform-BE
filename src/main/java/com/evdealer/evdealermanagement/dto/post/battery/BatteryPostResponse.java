@@ -27,26 +27,13 @@ public class BatteryPostResponse {
     String district;
     String ward;
     String addressDetail;
-
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     LocalDateTime createdAt;
     String batteryTypeName;
     String brandId;
     String brandName;
-
     BigDecimal capacityKwh;
     Integer healthPercent;
     Integer voltageV;
-
     List<ProductImageResponse> images;
-
-
-
-
-
-
-
-
-
-
 }

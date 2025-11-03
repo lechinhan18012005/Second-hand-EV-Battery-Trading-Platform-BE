@@ -39,6 +39,5 @@ public class VehiclePostResponse {
     Byte warrantyMonths;
     Boolean hasInsurance;
     Boolean hasRegistration;
-
     List<ProductImageResponse> images;
 }

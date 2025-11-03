@@ -3,7 +3,6 @@ package com.evdealer.evdealermanagement.service.implement;
 import com.cloudinary.api.exceptions.ApiException;
 import com.evdealer.evdealermanagement.dto.post.verification.PostVerifyResponse;
 import com.evdealer.evdealermanagement.dto.rate.ApprovalRateResponse;
-import com.evdealer.evdealermanagement.dto.transactions.ContractInfoDTO;
 import com.evdealer.evdealermanagement.dto.vehicle.catalog.VehicleCatalogDTO;
 import com.evdealer.evdealermanagement.entity.account.Account;
 import com.evdealer.evdealermanagement.entity.post.PostPayment;
@@ -23,7 +22,10 @@ import com.evdealer.evdealermanagement.mapper.post.PostVerifyMapper;
 import com.evdealer.evdealermanagement.mapper.vehicle.VehicleCatalogMapper;
 import com.evdealer.evdealermanagement.repository.*;
 
+
+import lombok.RequiredArgsConstructor;
 import com.evdealer.evdealermanagement.utils.VietNamDatetime;
+
 import org.springframework.data.domain.Pageable;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.extern.slf4j.Slf4j;
@@ -33,8 +35,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.stream.Collectors;
-
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -42,27 +42,29 @@ import org.springframework.web.server.ResponseStatusException;
 
 @Service
 @Slf4j
+@RequiredArgsConstructor
 public class StaffService {
 
-    @Autowired
-    private ProductRepository productRepository;
+    private final AccountRepository accountRepository;
+
+    private final ProductRepository productRepository;
 
     private static final ZoneId VIETNAM_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
 
-    @Autowired
-    private UserContextService userContextService;
-    @Autowired
-    private PostPaymentRepository postPaymentRepository;
-    @Autowired
-    private VehicleCatalogRepository vehicleCatalogRepository;
-    @Autowired
-    private GeminiRestService geminiRestService;
-    @Autowired
-    private VehicleDetailsRepository vehicleDetailsRepository;
-    @Autowired
-    private PurchaseRequestRepository purchaseRequestRepository;
-    @Autowired
-    private ContractDocumentRepository contractDocumentRepository;
+
+    private final UserContextService userContextService;
+
+    private final PostPaymentRepository postPaymentRepository;
+
+    private final VehicleCatalogRepository vehicleCatalogRepository;
+
+    private final GeminiRestService geminiRestService;
+
+    private final VehicleDetailsRepository vehicleDetailsRepository;
+
+    private final PurchaseRequestRepository purchaseRequestRepository;
+
+    private final ContractDocumentRepository contractDocumentRepository;
 
     private LocalDateTime nowVietNam() {
         return ZonedDateTime.now(VIETNAM_ZONE).toLocalDateTime();
