@@ -26,7 +26,7 @@ public class ProfileController {
     @PatchMapping("/me/update")
     @PreAuthorize("hasRole('MEMBER') or hasRole('ADMIN') or hasRole('STAFF')")
     public ResponseEntity<AccountProfileResponse> updateProfile(
-            @Valid @RequestBody AccountUpdateRequest request,
+            @Valid @ModelAttribute AccountUpdateRequest request,
             Authentication authentication) {
         String username = authentication.getName();
         return ResponseEntity.ok(profileService.updateProfile(username, request));

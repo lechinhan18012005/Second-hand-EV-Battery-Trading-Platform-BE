@@ -1,6 +1,7 @@
 package com.evdealer.evdealermanagement.service.implement;
 
 import com.cloudinary.api.exceptions.ApiException;
+import com.evdealer.evdealermanagement.dto.common.PageResponse;
 import com.evdealer.evdealermanagement.dto.post.verification.PostVerifyResponse;
 import com.evdealer.evdealermanagement.dto.rate.ApprovalRateResponse;
 import com.evdealer.evdealermanagement.dto.vehicle.catalog.VehicleCatalogDTO;
@@ -322,9 +323,10 @@ public class StaffService {
     }
 
     @Transactional(readOnly = true)
-    public Page<TransactionsHistory> getAllTransactionHistory(Pageable pageable) {
-        Page<ContractDocument> docs = contractDocumentRepository.findAll(pageable);
-        return docs.map(this::mapToHistoryDTO);
+    public PageResponse<TransactionsHistory> getAllTransactionHistory(Pageable pageable) {
+        Page<ContractDocument> page = contractDocumentRepository.findAll(pageable);
+
+        return PageResponse.fromPage(page, this::mapToHistoryDTO);
     }
 
     public ApprovalRateResponse getApprovalRateByDate(LocalDate date) {
