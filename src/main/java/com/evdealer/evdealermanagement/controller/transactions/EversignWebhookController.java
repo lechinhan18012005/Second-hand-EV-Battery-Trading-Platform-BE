@@ -1,6 +1,5 @@
 package com.evdealer.evdealermanagement.controller.transactions;
 
-import com.evdealer.evdealermanagement.entity.transactions.PurchaseRequest;
 import com.evdealer.evdealermanagement.repository.PurchaseRequestRepository;
 import com.evdealer.evdealermanagement.service.implement.EversignService;
 import lombok.RequiredArgsConstructor;
@@ -8,8 +7,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.RestTemplate;
 
-import java.time.LocalDateTime;
 import java.util.Map;
 
 @RestController
@@ -50,6 +49,55 @@ public class EversignWebhookController {
             log.error("❌ Lỗi khi xử lý webhook cho {}: {}", documentHash, e.getMessage(), e);
             return ResponseEntity.internalServerError()
                     .body(Map.of("success", false, "error", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/admin/manual-complete/{documentHash}")
+    public ResponseEntity<?> manualComplete(@PathVariable String documentHash) {
+        log.info("🔧 [ADMIN] Manual trigger cho document: {}", documentHash);
+
+        try {
+            // Verify với Eversign trước
+            String url = String.format(
+                    "https://api.eversign.com/document?business_id=%s&document_hash=%s&access_key=%s",
+                    eversignService.getBusinessId(), // Cần expose getter
+                    documentHash,
+                    eversignService.getApiKey() // Cần expose getter
+            );
+
+            RestTemplate restTemplate = new RestTemplate();
+            ResponseEntity<Map> response = restTemplate.getForEntity(url, Map.class);
+
+            if (response.getBody() != null) {
+                Object isCompleted = response.getBody().get("is_completed");
+                log.info("📊 Eversign status: is_completed = {}", isCompleted);
+
+                boolean completed = "1".equals(String.valueOf(isCompleted))
+                        || Boolean.TRUE.equals(isCompleted);
+
+                if (!completed) {
+                    return ResponseEntity.badRequest().body(Map.of(
+                            "success", false,
+                            "error", "Document chưa được ký hoàn tất trên Eversign",
+                            "is_completed", isCompleted
+                    ));
+                }
+            }
+
+            // Process completion
+            eversignService.processDocumentCompletion(documentHash);
+
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "message", "✅ Đã xử lý thành công document: " + documentHash
+            ));
+
+        } catch (Exception e) {
+            log.error("❌ Lỗi: {}", e.getMessage(), e);
+            return ResponseEntity.status(500).body(Map.of(
+                    "success", false,
+                    "error", e.getMessage()
+            ));
         }
     }
 }

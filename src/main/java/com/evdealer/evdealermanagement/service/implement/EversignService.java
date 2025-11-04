@@ -14,10 +14,12 @@ import com.evdealer.evdealermanagement.repository.ContractDocumentRepository;
 import com.evdealer.evdealermanagement.repository.ProductRepository;
 import com.evdealer.evdealermanagement.repository.PurchaseRequestRepository;
 import com.evdealer.evdealermanagement.utils.VietNamDatetime;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
@@ -51,9 +53,11 @@ public class EversignService {
     private String cloudApiSecret;
 
     // Eversign Config
+    @Getter
     @Value("${EVERSIGN_API_KEY}")
     private String apiKey;
 
+    @Getter
     @Value("${EVERSIGN_BUSINESS_ID}")
     private String businessId;
 
@@ -317,6 +321,63 @@ public class EversignService {
             log.error("❌ [Eversign] Lỗi nghiêm trọng khi lưu/upload hợp đồng: {}", e.getMessage(), e);
             // Ném lại exception để transaction có thể rollback
             throw new RuntimeException("Lỗi khi xử lý và lưu file hợp đồng từ Eversign: " + e.getMessage());
+        }
+    }
+
+    @Scheduled(fixedDelay = 60000) // 3 phút (cho nhanh hơn)
+    @Transactional
+    public void autoSyncCompletedContracts() {
+        log.info("🔄 [Auto-Sync] Bắt đầu kiểm tra các hợp đồng pending...");
+
+        List<PurchaseRequest> pendingRequests = purchaseRequestRepository
+                .findByContractStatus(PurchaseRequest.ContractStatus.SENT);
+
+        if (pendingRequests.isEmpty()) {
+            log.debug("✅ [Auto-Sync] Không có hợp đồng pending");
+            return;
+        }
+
+        log.info("📋 [Auto-Sync] Tìm thấy {} hợp đồng cần kiểm tra", pendingRequests.size());
+
+        for (PurchaseRequest request : pendingRequests) {
+            try {
+                String documentHash = request.getContractId();
+                if (documentHash == null) {
+                    log.warn("⚠️ Request {} không có contractId", request.getId());
+                    continue;
+                }
+
+                // Gọi Eversign API để check status
+                String url = String.format(
+                        "%s/document?business_id=%s&document_hash=%s&access_key=%s",
+                        EVERSIGN_API_BASE, businessId, documentHash, apiKey
+                );
+
+                log.debug("🔍 Checking document: {}", documentHash);
+                ResponseEntity<Map> response = restTemplate.getForEntity(url, Map.class);
+
+                if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+                    Map<String, Object> doc = response.getBody();
+
+                    // Eversign trả về is_completed = 1 (string) hoặc true
+                    Object isCompletedObj = doc.get("is_completed");
+                    boolean isCompleted = "1".equals(String.valueOf(isCompletedObj))
+                            || Boolean.TRUE.equals(isCompletedObj);
+
+                    log.debug("📊 Document {} - is_completed: {}", documentHash, isCompletedObj);
+
+                    if (isCompleted) {
+                        log.info("🎉 [Auto-Sync] Phát hiện hợp đồng {} đã completed!", documentHash);
+                        processDocumentCompletion(documentHash);
+                    } else {
+                        log.debug("⏳ Document {} vẫn chưa hoàn tất", documentHash);
+                    }
+                }
+
+            } catch (Exception e) {
+                log.error("❌ [Auto-Sync] Lỗi khi check hợp đồng {}: {}",
+                        request.getContractId(), e.getMessage());
+            }
         }
     }
 }

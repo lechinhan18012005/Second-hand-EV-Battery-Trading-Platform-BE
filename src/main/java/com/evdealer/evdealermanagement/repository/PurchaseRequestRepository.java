@@ -54,20 +54,22 @@ public interface PurchaseRequestRepository extends JpaRepository<PurchaseRequest
 
     @EntityGraph(attributePaths = {"product"})
     @Query("""
-        SELECT pr
-        FROM PurchaseRequest pr
-        WHERE pr.status = 'COMPLETED'
-          AND (pr.buyer.id = :accountId OR pr.seller.id = :accountId)
-        ORDER BY pr.completedAt DESC
-    """)
+                SELECT pr
+                FROM PurchaseRequest pr
+                WHERE pr.status = 'COMPLETED'
+                  AND (pr.buyer.id = :accountId OR pr.seller.id = :accountId)
+                ORDER BY pr.completedAt DESC
+            """)
     Page<PurchaseRequest> findCompletedTransactionsByAccountId(String accountId, Pageable pageable);
 
     @Query("""
-    SELECT cd
-    FROM ContractDocument cd
-    WHERE cd.purchaseRequest.buyer.id = :accountId
-       OR cd.purchaseRequest.seller.id = :accountId
-    ORDER BY cd.signedAt DESC
-""")
+                SELECT cd
+                FROM ContractDocument cd
+                WHERE cd.purchaseRequest.buyer.id = :accountId
+                   OR cd.purchaseRequest.seller.id = :accountId
+                ORDER BY cd.signedAt DESC
+            """)
     Page<ContractDocument> findAllByAccountInvolved(String accountId, Pageable pageable);
+
+    List<PurchaseRequest> findByContractStatus(PurchaseRequest.ContractStatus status);
 }
