@@ -2,6 +2,7 @@ package com.evdealer.evdealermanagement.controller.payment;
 
 import com.evdealer.evdealermanagement.dto.account.custom.CustomAccountDetails;
 import com.evdealer.evdealermanagement.dto.common.PageResponse;
+import com.evdealer.evdealermanagement.dto.transactions.TransactionContractResponse;
 import com.evdealer.evdealermanagement.dto.transactions.TransactionPackageResponse;
 import com.evdealer.evdealermanagement.dto.transactions.TransactionPurchaseResponse;
 import com.evdealer.evdealermanagement.dto.transactions.TransactionResponse;
@@ -49,5 +50,14 @@ public class TransactionController {
             @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
             ) {
         return ResponseEntity.ok(transactionService.getAllTransactionsPurchaseByBuyerAndSellerId(accountDetails.getAccountId(), pageable));
+    }
+
+    @GetMapping("/contract/history")
+    @PreAuthorize("hasRole('MEMBER')")
+    public ResponseEntity<PageResponse<TransactionContractResponse>> getTransactionContractHistory(
+            @AuthenticationPrincipal CustomAccountDetails accountDetails,
+            @PageableDefault(size = 10, sort = "signedAt", direction = Sort.Direction.DESC) Pageable pageable
+            ) {
+        return ResponseEntity.ok(transactionService.getAllTransactionsContractByBuyerAndSellerId(accountDetails.getAccountId(), pageable));
     }
 }

@@ -1,5 +1,6 @@
 package com.evdealer.evdealermanagement.repository;
 
+import com.evdealer.evdealermanagement.entity.transactions.ContractDocument;
 import com.evdealer.evdealermanagement.entity.transactions.PurchaseRequest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -60,4 +61,13 @@ public interface PurchaseRequestRepository extends JpaRepository<PurchaseRequest
         ORDER BY pr.completedAt DESC
     """)
     Page<PurchaseRequest> findCompletedTransactionsByAccountId(String accountId, Pageable pageable);
+
+    @Query("""
+    SELECT cd
+    FROM ContractDocument cd
+    WHERE cd.purchaseRequest.buyer.id = :accountId
+       OR cd.purchaseRequest.seller.id = :accountId
+    ORDER BY cd.signedAt DESC
+""")
+    Page<ContractDocument> findAllByAccountInvolved(String accountId, Pageable pageable);
 }
