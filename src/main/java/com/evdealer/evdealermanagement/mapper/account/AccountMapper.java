@@ -27,9 +27,6 @@ public final class AccountMapper {
             account.setNationalId(trimToNull(req.getNationalId()));
         if (StringUtils.hasText(req.getTaxCode()))
             account.setTaxCode(trimToNull(req.getTaxCode()));
-        if (StringUtils.hasText(req.getAvatarUrl()))
-            account.setAvatarUrl(trimToNull(req.getAvatarUrl()));
-
         if (req.getGender() != null) {
             try {
                 account.setGender(Account.Gender.valueOf(req.getGender().name()));
