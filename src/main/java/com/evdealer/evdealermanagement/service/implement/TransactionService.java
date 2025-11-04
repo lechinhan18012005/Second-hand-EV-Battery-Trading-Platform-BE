@@ -1,5 +1,6 @@
 package com.evdealer.evdealermanagement.service.implement;
 
+import com.evdealer.evdealermanagement.dto.common.PageResponse;
 import com.evdealer.evdealermanagement.dto.payment.TransactionResponse;
 import com.evdealer.evdealermanagement.entity.post.PostPackage;
 import com.evdealer.evdealermanagement.entity.post.PostPackageOption;
@@ -24,21 +25,18 @@ public class TransactionService {
     private final ProductRepository productRepository;
 
     @Transactional(readOnly = true)
-    public Page<TransactionResponse> getAllTransactions(Pageable pageable) {
-        Page<PostPayment> payments = postPaymentRepository.findAllByOrderByCreatedAtDesc(pageable);
-        // Có thể dùng findAll(pageable) nếu đã sort trong pageable
+    public PageResponse<TransactionResponse> getAllTransactions(Pageable pageable) {
+        // Nếu đã set sort trong @PageableDefault thì chỉ cần findAll(pageable)
+        Page<PostPayment> page = postPaymentRepository.findAll(pageable);
 
-        return payments.map(p -> {
-            Product product = p.getProduct();
+        return PageResponse.fromPage(page, p -> {
+            Product product = p.getProduct(); // Nên preload để tránh N+1
             PostPackage postPackage = p.getPostPackage();
-            PostPackageOption postPackageOption = p.getPostPackageOption();
+            PostPackageOption opt = p.getPostPackageOption();
 
-            Integer durationDays = null;
-            if (postPackageOption != null && postPackageOption.getDurationDays() != null) {
-                durationDays = postPackageOption.getDurationDays();
-            } else if (postPackage != null) {
-                durationDays = postPackage.getDurationDays();
-            }
+            Integer durationDays = (opt != null && opt.getDurationDays() != null)
+                    ? opt.getDurationDays()
+                    : (postPackage != null ? postPackage.getBaseDurationDays() : null);
 
             return TransactionResponse.builder()
                     .paymentId(p.getId())
@@ -47,7 +45,7 @@ public class TransactionService {
                     .paymentMethod(p.getPaymentMethod() != null ? p.getPaymentMethod().name() : null)
                     .packageName(postPackage != null ? postPackage.getName() : null)
                     .durationDays(durationDays)
-                    .productId(p.getProduct() != null ? p.getProduct().getId() : null)
+                    .productId(product != null ? product.getId() : null)
                     .productName(product != null ? product.getTitle() : null)
                     .build();
         });

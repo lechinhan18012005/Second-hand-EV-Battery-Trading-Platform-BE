@@ -77,13 +77,10 @@ public class StaffProductManagementController {
      */
     @GetMapping("/transaction/history")
     @PreAuthorize("hasAnyRole('STAFF','ADMIN')")
-    public ResponseEntity<Page<TransactionsHistory>> getTransactionHistory(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "signedAt"));
-        Page<TransactionsHistory> historyPage = staffService.getAllTransactionHistory(pageable);
-        // Với Page, trả 200 luôn (kể cả empty) để FE nhận tổng trang/phần tử
-        return ResponseEntity.ok(historyPage);
+    public PageResponse<TransactionsHistory> getTransactionHistory(
+            @PageableDefault(size = 10, sort = "signedAt", direction = Sort.Direction.DESC) Pageable pageable) {
+
+        return staffService.getAllTransactionHistory(pageable);
     }
 
 }
