@@ -106,7 +106,7 @@ public class PurchaseRequestService {
             notificationService.createAndPush(
                     request.getSeller().getId(),
                     "Yêu cầu mua hàng",
-                    String.format("%s muốn mua \"%s\" với giá %s VND.",
+                    String.format("%s muốn mua %s với giá %s.",
                             buyer.getFullName(),
                             product.getTitle(),
                             CurrencyFormatter.format(request.getOfferedPrice())),

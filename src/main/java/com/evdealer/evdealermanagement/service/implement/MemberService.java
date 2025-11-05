@@ -13,14 +13,11 @@ import com.evdealer.evdealermanagement.utils.VietNamDatetime;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
 
-import java.security.SecureRandom;
-import java.time.LocalDateTime;
+import java.time.*;
 import java.util.List;
 
 @Service
@@ -93,6 +90,14 @@ public class MemberService {
 
         // Dùng mapper chuẩn để convert entity → dto
         return ProductMapper.toDetailDto(product);
+    }
+
+    public long countAccountMemberInPeriod(LocalDate date) {
+        ZoneId VN = ZoneId.of("Asia/Ho_Chi_Minh");
+        LocalDate target = (date != null) ? date : LocalDate.now(VN);
+        LocalDateTime start = target.atStartOfDay();
+        LocalDateTime end = target.plusDays(1).atStartOfDay();
+        return accountRepository.countCreatedInPeriod(start, end, Account.Role.MEMBER);
     }
 
 
