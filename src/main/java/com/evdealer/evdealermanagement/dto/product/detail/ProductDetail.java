@@ -1,5 +1,6 @@
 package com.evdealer.evdealermanagement.dto.product.detail;
 
+import com.evdealer.evdealermanagement.entity.account.Account;
 import com.evdealer.evdealermanagement.entity.battery.BatteryDetails;
 import com.evdealer.evdealermanagement.entity.product.Product;
 import com.evdealer.evdealermanagement.entity.product.ProductImages;
@@ -8,6 +9,7 @@ import com.evdealer.evdealermanagement.utils.PriceSerializer;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import lombok.*;
 import org.hibernate.Hibernate;
+import org.springframework.security.core.parameters.P;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -53,6 +55,8 @@ public class ProductDetail {
     private Boolean isHot;
 
     private Boolean isWishlisted;
+
+    private String sellerAvatarUrl;
 
     public static ProductDetail fromEntity(Product product) {
         if (product == null)
@@ -129,6 +133,11 @@ public class ProductDetail {
                 .brandName(brandName)
                 .batteryType(batteryType)
                 .isHot(product.getIsHot() != null ? product.getIsHot() : false)
+                .sellerAvatarUrl(
+                        product.getSeller() != null && product.getSeller().getAvatarUrl() != null
+                                ? product.getSeller().getAvatarUrl()
+                                : null
+                )
                 .build();
     }
 }
