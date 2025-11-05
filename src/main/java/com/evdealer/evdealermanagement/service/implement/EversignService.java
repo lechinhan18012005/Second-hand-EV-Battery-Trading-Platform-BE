@@ -149,7 +149,7 @@ public class EversignService {
         body.put("sandbox", sandboxMode ? 1 : 0); // ✅ bật sandbox
         body.put("business_id", businessId);
         body.put("template_id", templateId);
-        body.put("title", "Hợp đồng mua bán xe điện (sandbox)");
+        body.put("title", "Hợp đồng mua bán sản phẩm - ECO GREEN");
         body.put("message", "Vui lòng điền thông tin và ký hợp đồng (sandbox).");
 //        body.put("embedded_signing_enabled", 1);
         body.put("use_signer_order", 1);

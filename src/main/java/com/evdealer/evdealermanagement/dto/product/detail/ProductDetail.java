@@ -1,6 +1,5 @@
 package com.evdealer.evdealermanagement.dto.product.detail;
 
-import com.evdealer.evdealermanagement.entity.account.Account;
 import com.evdealer.evdealermanagement.entity.battery.BatteryDetails;
 import com.evdealer.evdealermanagement.entity.product.Product;
 import com.evdealer.evdealermanagement.entity.product.ProductImages;
@@ -9,7 +8,6 @@ import com.evdealer.evdealermanagement.utils.PriceSerializer;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import lombok.*;
 import org.hibernate.Hibernate;
-import org.springframework.security.core.parameters.P;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
