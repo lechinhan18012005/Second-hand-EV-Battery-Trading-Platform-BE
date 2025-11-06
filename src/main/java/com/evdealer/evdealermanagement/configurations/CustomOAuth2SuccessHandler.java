@@ -9,6 +9,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.security.oauth2.core.user.OAuth2User;
@@ -25,6 +26,10 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
 
     private final FacebookLoginService facebookLoginService;
     private final GoogleLoginService googleLoginService;
+
+
+    @Value("${frontend.url}")
+    private String frontendUrl;
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request,
@@ -55,13 +60,23 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
 
 
 
-        // Trả JSON thay vì redirect
-        response.setContentType("application/json");
-        response.setCharacterEncoding("UTF-8");
-        response.getWriter().write(
-                "{ \"token\": \"" + loginResponse.getToken() + "\", " +
-                        "\"email\": \"" + loginResponse.getEmail() + "\" }"
-        );
-        response.getWriter().flush();
+
+        // ====== ĐIỂM QUAN TRỌNG: redirect sang FE ======
+        String token = URLEncoder.encode(loginResponse.getToken(), StandardCharsets.UTF_8);
+        String email = URLEncoder.encode(loginResponse.getEmail(), StandardCharsets.UTF_8);
+
+        // FE tạo sẵn route /oauth2/success để hứng
+        String redirectUrl = frontendUrl + "/oauth2/success?token=" + token + "&email=" + email;
+
+        response.sendRedirect(redirectUrl);
+
+//        // Trả JSON thay vì redirect
+//        response.setContentType("application/json");
+//        response.setCharacterEncoding("UTF-8");
+//        response.getWriter().write(
+//                "{ \"token\": \"" + loginResponse.getToken() + "\", " +
+//                        "\"email\": \"" + loginResponse.getEmail() + "\" }"
+//        );
+//        response.getWriter().flush();
     }
 }

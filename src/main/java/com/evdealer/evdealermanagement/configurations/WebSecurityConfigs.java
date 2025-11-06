@@ -77,6 +77,8 @@ public class WebSecurityConfigs {
                                 "vehicle/brands/all", "vehicle/categories/all",
                                 "vehicle/models/all", "vehicle/model/versions")
                         .permitAll()
+                        .requestMatchers("/seller-reviews/seller/**").permitAll()
+                        .requestMatchers("seller-reviews").authenticated()
                         .requestMatchers("/api/vnpayment/verify").permitAll()
                         .anyRequest().authenticated())
                 .exceptionHandling(exception -> exception
