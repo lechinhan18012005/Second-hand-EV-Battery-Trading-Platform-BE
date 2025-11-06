@@ -1,4 +1,4 @@
-package com.evdealer.evdealermanagement.dto.payment;
+package com.evdealer.evdealermanagement.dto.transactions;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -12,13 +12,12 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class TransactionResponse {
+public class TransactionPackageResponse {
     private String paymentId;
     private LocalDateTime createdAt;
     private BigDecimal amount;
     private String paymentMethod;
     private String packageName;
-    private Integer durationDays;
     private String productId;
     private String productName;
 }

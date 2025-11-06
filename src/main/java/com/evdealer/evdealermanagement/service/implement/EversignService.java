@@ -14,10 +14,12 @@ import com.evdealer.evdealermanagement.repository.ContractDocumentRepository;
 import com.evdealer.evdealermanagement.repository.ProductRepository;
 import com.evdealer.evdealermanagement.repository.PurchaseRequestRepository;
 import com.evdealer.evdealermanagement.utils.VietNamDatetime;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
@@ -51,9 +53,11 @@ public class EversignService {
     private String cloudApiSecret;
 
     // Eversign Config
+    @Getter
     @Value("${EVERSIGN_API_KEY}")
     private String apiKey;
 
+    @Getter
     @Value("${EVERSIGN_BUSINESS_ID}")
     private String businessId;
 
@@ -173,7 +177,10 @@ public class EversignService {
     }
 
     private String buildContractViewUrl(String documentHash) {
-        return String.format("https://eversign.com/documents/%s", documentHash);
+        return String.format(
+                "%s/document?business_id=%s&document_hash=%s&access_key=%s",
+                EVERSIGN_API_BASE, businessId, documentHash, apiKey
+        );
     }
 
     // ✅ CHỈ CẦN DUY NHẤT PHƯƠNG THỨC NÀY ĐỂ LÀM VIỆC LƯU TRỮ
@@ -285,38 +292,90 @@ public class EversignService {
     private void saveFinalContract(PurchaseRequest request) {
         try {
             String documentHash = request.getContractId();
-            log.info("📑 [Eversign] Bắt đầu tải và lưu file hợp đồng, documentHash={}", documentHash);
+            log.info("📑 [Eversign] Bắt đầu lưu link hợp đồng, documentHash={}", documentHash);
 
-            // ... (toàn bộ logic tải file, upload Cloudinary và lưu ContractDocument của bạn)
-            // ... (giữ nguyên như trong code cũ của bạn)
-
-            String downloadUrl = String.format(
+            // ✅ Tạo URL tải trực tiếp từ Eversign
+            String finalDocUrl = String.format(
                     "https://api.eversign.com/download_final_document?access_key=%s&business_id=%s&document_hash=%s&audit_trail=1",
                     apiKey, businessId, documentHash
             );
-            byte[] pdfBytes = restTemplate.getForObject(downloadUrl, byte[].class);
-            if (pdfBytes == null || pdfBytes.length == 0) {
-                throw new IOException("Tải file PDF từ Eversign thất bại (file rỗng).");
-            }
-            Cloudinary cloudinary = new Cloudinary(ObjectUtils.asMap("cloud_name", cloudName, "api_key", cloudApiKey, "api_secret", cloudApiSecret, "secure", true));
-            String publicId = "contracts/" + documentHash;
-            Map uploadResult = cloudinary.uploader().upload(pdfBytes, ObjectUtils.asMap("resource_type", "raw", "public_id", publicId, "format", "pdf"));
-            String cloudinaryUrl = (String) uploadResult.get("secure_url");
 
-            ContractDocument contract = contractDocumentRepository.findByDocumentId(documentHash).orElse(new ContractDocument());
+            // ✅ Lưu (hoặc cập nhật nếu đã tồn tại)
+            ContractDocument contract = contractDocumentRepository.findByDocumentId(documentHash)
+                    .orElse(new ContractDocument());
+
             contract.setDocumentId(documentHash);
+            contract.setPurchaseRequest(request);
             contract.setTitle("Hợp đồng mua bán - " + request.getProduct().getTitle());
-            contract.setPdfUrl(cloudinaryUrl);
+            contract.setPdfUrl(finalDocUrl);
             contract.setSignerEmail(request.getBuyer().getEmail());
             contract.setSignedAt(VietNamDatetime.nowVietNam());
+
             contractDocumentRepository.save(contract);
 
-            log.info("✅ [DB] Lưu thông tin hợp đồng vào DB thành công!");
+            log.info("✅ [DB] Đã lưu ContractDocument thành công với URL Eversign: {}", finalDocUrl);
 
         } catch (Exception e) {
-            log.error("❌ [Eversign] Lỗi nghiêm trọng khi lưu/upload hợp đồng: {}", e.getMessage(), e);
-            // Ném lại exception để transaction có thể rollback
-            throw new RuntimeException("Lỗi khi xử lý và lưu file hợp đồng từ Eversign: " + e.getMessage());
+            log.error("❌ [Eversign] Lỗi khi lưu link hợp đồng: {}", e.getMessage(), e);
+            throw new RuntimeException("Lỗi khi xử lý và lưu hợp đồng từ Eversign: " + e.getMessage());
+        }
+    }
+
+
+    @Scheduled(fixedDelay = 60000) // 3 phút (cho nhanh hơn)
+    @Transactional
+    public void autoSyncCompletedContracts() {
+        log.info("🔄 [Auto-Sync] Bắt đầu kiểm tra các hợp đồng pending...");
+
+        List<PurchaseRequest> pendingRequests = purchaseRequestRepository
+                .findByContractStatus(PurchaseRequest.ContractStatus.SENT);
+
+        if (pendingRequests.isEmpty()) {
+            log.debug("✅ [Auto-Sync] Không có hợp đồng pending");
+            return;
+        }
+
+        log.info("📋 [Auto-Sync] Tìm thấy {} hợp đồng cần kiểm tra", pendingRequests.size());
+
+        for (PurchaseRequest request : pendingRequests) {
+            try {
+                String documentHash = request.getContractId();
+                if (documentHash == null) {
+                    log.warn("⚠️ Request {} không có contractId", request.getId());
+                    continue;
+                }
+
+                // Gọi Eversign API để check status
+                String url = String.format(
+                        "%s/document?business_id=%s&document_hash=%s&access_key=%s",
+                        EVERSIGN_API_BASE, businessId, documentHash, apiKey
+                );
+
+                log.debug("🔍 Checking document: {}", documentHash);
+                ResponseEntity<Map> response = restTemplate.getForEntity(url, Map.class);
+
+                if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+                    Map<String, Object> doc = response.getBody();
+
+                    // Eversign trả về is_completed = 1 (string) hoặc true
+                    Object isCompletedObj = doc.get("is_completed");
+                    boolean isCompleted = "1".equals(String.valueOf(isCompletedObj))
+                            || Boolean.TRUE.equals(isCompletedObj);
+
+                    log.debug("📊 Document {} - is_completed: {}", documentHash, isCompletedObj);
+
+                    if (isCompleted) {
+                        log.info("🎉 [Auto-Sync] Phát hiện hợp đồng {} đã completed!", documentHash);
+                        processDocumentCompletion(documentHash);
+                    } else {
+                        log.debug("⏳ Document {} vẫn chưa hoàn tất", documentHash);
+                    }
+                }
+
+            } catch (Exception e) {
+                log.error("❌ [Auto-Sync] Lỗi khi check hợp đồng {}: {}",
+                        request.getContractId(), e.getMessage());
+            }
         }
     }
 }

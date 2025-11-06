@@ -1,8 +1,10 @@
 package com.evdealer.evdealermanagement.repository;
 
+import com.evdealer.evdealermanagement.entity.transactions.ContractDocument;
 import com.evdealer.evdealermanagement.entity.transactions.PurchaseRequest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -49,4 +51,25 @@ public interface PurchaseRequestRepository extends JpaRepository<PurchaseRequest
             String productId,
             java.util.List<PurchaseRequest.RequestStatus> statuses
     );
+
+    @EntityGraph(attributePaths = {"product"})
+    @Query("""
+                SELECT pr
+                FROM PurchaseRequest pr
+                WHERE pr.status = 'COMPLETED'
+                  AND (pr.buyer.id = :accountId OR pr.seller.id = :accountId)
+                ORDER BY pr.completedAt DESC
+            """)
+    Page<PurchaseRequest> findCompletedTransactionsByAccountId(String accountId, Pageable pageable);
+
+    @Query("""
+                SELECT cd
+                FROM ContractDocument cd
+                WHERE cd.purchaseRequest.buyer.id = :accountId
+                   OR cd.purchaseRequest.seller.id = :accountId
+                ORDER BY cd.signedAt DESC
+            """)
+    Page<ContractDocument> findAllByAccountInvolved(String accountId, Pageable pageable);
+
+    List<PurchaseRequest> findByContractStatus(PurchaseRequest.ContractStatus status);
 }

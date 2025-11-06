@@ -8,6 +8,7 @@ import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 import jakarta.validation.constraints.Pattern;
+import org.springframework.web.multipart.MultipartFile;
 
 @Getter
 @Setter
@@ -19,10 +20,10 @@ public class AccountUpdateRequest {
     @Size(max = 255, message = "Address must not exceed 255 characters")
     private String address;
 
-    @Size(max = 255, message = "Avatar URL must not exceed 255 characters")
-    private String avatarUrl;
+    private MultipartFile avatarUrl;
 
-    @Pattern(regexp = "^[0-9+()\\-\\s]{6,20}$", message = "Phone number format is invalid")
+    @Pattern(regexp = "^(0|\\+84)[0-9]{9}$",
+            message = "Phone must be 10 digits starting with 0, or +84 followed by 9 digits")
     private String phone;
 
     @Email(message = "Email format is invalid")

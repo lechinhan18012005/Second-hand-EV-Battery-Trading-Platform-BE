@@ -34,4 +34,6 @@ public interface PostPaymentRepository extends JpaRepository<PostPayment, String
 
         Page<PostPayment> findAllByOrderByCreatedAtDesc(Pageable pageable);
 
+        @EntityGraph(attributePaths = {"product", "postPackage"})
+        Page<PostPayment> findByProductSellerIdOrderByCreatedAtDesc(String sellerId, Pageable pageable);
 }
