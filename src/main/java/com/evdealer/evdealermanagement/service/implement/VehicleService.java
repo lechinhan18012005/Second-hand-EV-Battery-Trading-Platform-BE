@@ -493,42 +493,7 @@ public class VehicleService {
 
         productRepository.save(product);
 
-        return VehiclePostResponse.builder()
-                .productId(product.getId())
-                .status(product.getStatus().name())
-                .sellerPhone(product.getSellerPhone())
-                .brandName(details.getBrand().getName())
-                .categoryName(details.getCategory().getName())
-                .modelName(details.getModel().getName())
-                .hasInsurance(details.getHasInsurance())
-                .warrantyMonths(details.getWarrantyMonths())
-                .hasRegistration(details.getHasRegistration())
-                .title(request != null ? request.getTitle() : product.getTitle())
-                .description(request != null ? request.getDescription() : product.getDescription())
-                .price(request != null ? request.getPrice() : product.getPrice())
-                .city(request != null ? request.getCity() : product.getCity())
-                .district(request != null ? request.getDistrict() : product.getDistrict())
-                .ward(request != null ? request.getWard() : product.getWard())
-                .addressDetail(request != null ? request.getAddressDetail() : product.getAddressDetail())
-                .createdAt(LocalDateTime.now())
-                .brandId(request != null ? request.getBrandId() : details.getBrand().getId())
-                .categoryId(request != null ? request.getCategoryId() : details.getCategory().getId())
-                .batteryHealthPercent(
-                        request != null ? request.getBatteryHealthPercent() : details.getBatteryHealthPercent())
-                .mileageKm(request != null ? request.getMileageKm() : details.getMileageKm())
-                .images(
-                        (imageDtos != null && !imageDtos.isEmpty())
-                                ? imageDtos
-                                : product.getImages().stream()
-                                        .map(img -> ProductImageResponse.builder()
-                                                .url(img.getImageUrl())
-                                                .width(img.getWidth())
-                                                .position(img.getPosition())
-                                                .height(img.getHeight())
-                                                .isPrimary(img.getIsPrimary())
-                                                .build())
-                                        .toList())
-                .build();
+        return VehicleMapper.toVehiclePostResponse(product, details, request, imageDtos);
     }
 
     @Transactional

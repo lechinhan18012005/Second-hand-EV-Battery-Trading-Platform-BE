@@ -14,6 +14,7 @@ import com.evdealer.evdealermanagement.entity.product.Product;
 import com.evdealer.evdealermanagement.entity.product.ProductImages;
 import com.evdealer.evdealermanagement.exceptions.AppException;
 import com.evdealer.evdealermanagement.exceptions.ErrorCode;
+import com.evdealer.evdealermanagement.mapper.battery.BatteryDetailsMapper;
 import com.evdealer.evdealermanagement.mapper.battery.BatteryMapper;
 import com.evdealer.evdealermanagement.repository.*;
 import com.evdealer.evdealermanagement.utils.VietNamDatetime;
@@ -25,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -234,11 +236,11 @@ public class BatteryService {
 
     @Transactional
     public BatteryPostResponse updateBatteryPost(String productId, BatteryPostRequest request,
-            List<MultipartFile> images, String imagesMetaJson) {
+                                                 List<MultipartFile> images, String imagesMetaJson) {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new AppException(ErrorCode.PRODUCT_NOT_FOUND));
 
-        if (product.getStatus() != Product.Status.DRAFT) {
+        if(product.getStatus() != Product.Status.DRAFT) {
             throw new AppException(ErrorCode.PRODUCT_NOT_DRAFT);
         }
 
@@ -277,7 +279,7 @@ public class BatteryService {
 
         List<ProductImageResponse> imageDtos = null;
 
-        if (images != null && !images.isEmpty()) {
+        if(images != null && !images.isEmpty()) {
 
             productImagesRepository.deleteAllByProduct(product);
             productImagesRepository.flush();
@@ -287,11 +289,11 @@ public class BatteryService {
             product.getImages().clear();
 
             List<ProductImages> newImages = imageDtos.stream()
-                    .map(dto -> ProductImages.builder()
-                            .product(product)
-                            .imageUrl(dto.getUrl())
-                            .isPrimary(dto.isPrimary())
-                            .build())
+                            .map(dto -> ProductImages.builder()
+                                    .product(product)
+                                    .imageUrl(dto.getUrl())
+                                    .isPrimary(dto.isPrimary())
+                                    .build())
                     .collect(Collectors.toList());
             product.getImages().addAll(newImages);
         }
@@ -299,40 +301,7 @@ public class BatteryService {
         productRepository.save(product);
         batteryDetailRepository.save(details);
 
-        return BatteryPostResponse.builder()
-                .productId(product.getId())
-                .status(product.getStatus().name())
-                .sellerPhone(product.getSellerPhone())
-                .brandName(details.getBrand().getName())
-                .batteryTypeName(details.getBatteryType().getName())
-                .capacityKwh(details.getCapacityKwh())
-                .title(request != null ? request.getTitle() : product.getTitle())
-                .description(request != null ? request.getDescription() : product.getDescription())
-                .price(request != null ? request.getPrice() : product.getPrice())
-                .city(request != null ? request.getCity() : product.getCity())
-                .district(request != null ? request.getDistrict() : product.getDistrict())
-                .ward(request != null ? request.getWard() : product.getWard())
-                .addressDetail(request != null ? request.getAddressDetail() : product.getAddressDetail())
-                .createdAt(product.getCreatedAt())
-                .brandId(request != null ? request.getBrandId() : details.getBrand().getId())
-                .brandName(details.getBrand() != null ? details.getBrand().getName() : null)
-                .batteryTypeName(details.getBatteryType() != null ? details.getBatteryType().getName() : null)
-                .capacityKwh(details.getCapacityKwh())
-                .healthPercent(details.getHealthPercent())
-                .voltageV(details.getVoltageV())
-                .images(
-                        (imageDtos != null && !imageDtos.isEmpty())
-                                ? imageDtos
-                                : product.getImages().stream()
-                                        .map(img -> ProductImageResponse.builder()
-                                                .url(img.getImageUrl())
-                                                .width(img.getWidth())
-                                                .height(img.getHeight())
-                                                .position(img.getPosition())
-                                                .isPrimary(img.getIsPrimary())
-                                                .build())
-                                        .toList())
-                .build();
+        return BatteryDetailsMapper.toBatteryPostResponse(product, details,request, imageDtos);
     }
 
     @Transactional
@@ -342,17 +311,15 @@ public class BatteryService {
                 .orElseThrow(() -> new AppException(ErrorCode.BATTERY_NOT_FOUND));
 
         String batteryTypeId = details.getBatteryType().getId();
-        String brandId = details.getBrand().getId();
+        String brandId =  details.getBrand().getId();
 
-        List<Product> similar = new ArrayList<>(
-                batteryDetailRepository.findSimilarBatteriesByType(batteryTypeId, productId));
-        List<Product> similarBrand = batteryDetailRepository.findSimilarBatteriesByBrand(brandId, batteryTypeId,
-                productId);
+        List<Product> similar = new ArrayList<>(batteryDetailRepository.findSimilarBatteriesByType(batteryTypeId, productId));
+        List<Product> similarBrand = batteryDetailRepository.findSimilarBatteriesByBrand(brandId, batteryTypeId, productId);
 
         for (Product p : similarBrand) {
             boolean alreadyExisted = similar.stream()
                     .anyMatch(sp -> sp.getId().equals(p.getId()));
-            if (!alreadyExisted) {
+            if(!alreadyExisted) {
                 similar.add(p);
             }
         }
@@ -370,8 +337,8 @@ public class BatteryService {
                             .modelName(b != null && b.getBatteryType() != null ? b.getBatteryType().getName() : null)
                             .images(
                                     p.getImages() != null && !p.getImages().isEmpty()
-                                            ? p.getImages().get(0).getImageUrl()
-                                            : null)
+                                    ? p.getImages().get(0).getImageUrl() : null
+                            )
                             .build();
                 })
                 .collect(Collectors.toList());
@@ -383,27 +350,7 @@ public class BatteryService {
         if (b == null)
             throw new AppException(ErrorCode.BATTERY_NOT_FOUND);
 
-        BatteryBrandsResponse brandDto = null;
-        if (b.getBrand() != null) {
-            brandDto = BatteryMapper.mapToBatteryBrandsResponse(b.getBrand());
-        }
-
-        return BatteryDetailResponse.builder()
-                .productTitle(b.getProduct() != null ? b.getProduct().getTitle() : null)
-                .productPrice(b.getProduct() != null ? b.getProduct().getPrice() : null)
-                .productStatus(b.getProduct() != null && b.getProduct().getStatus() != null
-                        ? b.getProduct().getStatus().name()
-                        : null)
-
-                .brandName(brandDto != null ? brandDto.getBrandName() : null)
-                .brandLogoUrl(brandDto != null ? brandDto.getLogoUrl() : null)
-
-                .batteryTypeName(b.getBatteryType() != null ? b.getBatteryType().getName() : null)
-                .capacityKwh(b.getCapacityKwh())
-                .voltageV(b.getVoltageV())
-                .healthPercent(b.getHealthPercent())
-                .origin(b.getOrigin())
-                .build();
+        return BatteryDetailsMapper.toBatteryDetailResponse(b);
     }
 
 }

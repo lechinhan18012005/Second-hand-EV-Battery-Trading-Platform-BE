@@ -7,6 +7,7 @@ import com.evdealer.evdealermanagement.dto.account.register.AccountRegisterRespo
 import com.evdealer.evdealermanagement.entity.account.Account;
 import com.evdealer.evdealermanagement.exceptions.AppException;
 import com.evdealer.evdealermanagement.exceptions.ErrorCode;
+import com.evdealer.evdealermanagement.mapper.account.AccountMapper;
 import com.evdealer.evdealermanagement.repository.AccountRepository;
 import com.evdealer.evdealermanagement.utils.Utils;
 import com.evdealer.evdealermanagement.utils.VietNamDatetime;
@@ -55,22 +56,7 @@ public class AuthService {
         // Step 4: Generate token
         String token = jwtService.generateToken(new CustomAccountDetails(account));
 
-        return AccountLoginResponse.builder()
-                .email(account.getEmail())
-                .fullName(account.getFullName())
-                .phone(account.getPhone())
-                .dateOfBirth(account.getDateOfBirth())
-                .gender(account.getGender())
-                .role(account.getRole())
-                .status(account.getStatus())
-                .nationalId(account.getNationalId())
-                .taxCode(account.getTaxCode())
-                .createdAt(account.getCreatedAt())
-                .updateAt(account.getUpdatedAt())
-                .address(account.getAddress())
-                .avatarUrl(account.getAvatarUrl())
-                .token(token)
-                .build();
+        return AccountMapper.toLoginResponse(account, token);
     }
 
     // ======================= REGISTER =======================
@@ -108,19 +94,7 @@ public class AuthService {
 
         Account saved = accountRepository.save(account);
 
-        return AccountRegisterResponse.builder()
-                .username(saved.getUsername())
-                .phone(saved.getPhone())
-                .fullName(saved.getFullName())
-                .dateOfBirth(saved.getDateOfBirth())
-                .gender(saved.getGender())
-                .role(saved.getRole())
-                .status(saved.getStatus())
-                .createdAt(saved.getCreatedAt())
-                .updateAt(saved.getUpdatedAt())
-                .address(saved.getAddress())
-                .email(null)
-                .build();
+        return AccountMapper.toRegisterResponse(saved);
     }
 
     // ======================= DELETE USER =======================
@@ -165,18 +139,6 @@ public class AuthService {
 
         Account saved = accountRepository.save(account);
 
-        return AccountRegisterResponse.builder()
-                .username(saved.getUsername())
-                .phone(saved.getPhone())
-                .fullName(saved.getFullName())
-                .dateOfBirth(saved.getDateOfBirth())
-                .gender(saved.getGender())
-                .role(saved.getRole())
-                .status(saved.getStatus())
-                .createdAt(saved.getCreatedAt())
-                .updateAt(saved.getUpdatedAt())
-                .address(saved.getAddress())
-                .email(null)
-                .build();
+        return AccountMapper.toRegisterResponse(saved);
     }
 }

@@ -25,48 +25,28 @@ public interface ProductRepository extends JpaRepository<Product, String>, JpaSp
 
     @Query("""
     SELECT p FROM Product p
+    LEFT JOIN PostPayment pay 
+        ON pay.product = p
+       AND pay.createdAt = (
+            SELECT MAX(pp.createdAt)
+            FROM PostPayment pp
+            WHERE pp.product = p
+        )
+    LEFT JOIN pay.postPackage pkg
     WHERE p.status = :status
-      
-      AND EXISTS (
-          SELECT 1 FROM PostPayment pay WHERE pay.product = p
-      )
-     
-      AND NOT EXISTS (
-          SELECT 1
-          FROM PostPayment pay2
-          JOIN pay2.postPackage pkg2
-          WHERE pay2.product = p
-            
-            AND pay2.createdAt = (
-                SELECT MAX(pp.createdAt)
-                FROM PostPayment pp
-                WHERE pp.product = p
-            )
-            
-            AND pkg2.code IN ('SPECIAL', 'PRIORITY')
-            
-            AND p.featuredEndAt IS NOT NULL
-            AND p.featuredEndAt < :nowVN
-      )
-    ORDER BY
-        (
-            SELECT 
-                CASE 
-                    WHEN pkg.code = 'SPECIAL' THEN 0
-                    WHEN pkg.code = 'PRIORITY' THEN 1
-                    WHEN pkg.code = 'STANDARD' THEN 2
-                    ELSE 3
-                END
-            FROM PostPayment pay2
-            JOIN pay2.postPackage pkg
-            WHERE pay2.product = p
-              AND pay2.createdAt = (
-                  SELECT MAX(pp.createdAt)
-                  FROM PostPayment pp
-                  WHERE pp.product = p
-              )
-        ) ASC,
-        p.createdAt DESC
+      AND p.expiresAt > :nowVN
+    ORDER BY 
+      CASE 
+        WHEN p.featuredEndAt >= :nowVN THEN 0
+        ELSE 1
+      END,
+      CASE 
+        WHEN pkg.code = 'SPECIAL' THEN 0
+        WHEN pkg.code = 'PRIORITY' THEN 1
+        WHEN pkg.code = 'STANDARD' THEN 2
+        ELSE 3
+      END,
+      p.createdAt DESC
 """)
     List<Product> findActiveFeaturedSorted(Product.Status status, LocalDateTime nowVN, Pageable pageable);
 

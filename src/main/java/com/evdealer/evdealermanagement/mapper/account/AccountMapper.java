@@ -1,7 +1,9 @@
 package com.evdealer.evdealermanagement.mapper.account;
 
+import com.evdealer.evdealermanagement.dto.account.login.AccountLoginResponse;
 import com.evdealer.evdealermanagement.dto.account.profile.AccountProfileResponse;
 import com.evdealer.evdealermanagement.dto.account.profile.AccountUpdateRequest;
+import com.evdealer.evdealermanagement.dto.account.register.AccountRegisterResponse;
 import com.evdealer.evdealermanagement.entity.account.Account;
 
 import org.springframework.util.StringUtils;
@@ -66,6 +68,45 @@ public final class AccountMapper {
                 .createdAt(account.getCreatedAt())
                 .updatedAt(account.getUpdatedAt())
                 .gender(account.getGender())
+                .build();
+    }
+
+    public static AccountLoginResponse toLoginResponse(Account account, String token) {
+        if (account == null) return null;
+
+        return AccountLoginResponse.builder()
+                .email(account.getEmail())
+                .fullName(account.getFullName())
+                .phone(account.getPhone())
+                .dateOfBirth(account.getDateOfBirth())
+                .gender(account.getGender())
+                .role(account.getRole())
+                .status(account.getStatus())
+                .nationalId(account.getNationalId())
+                .taxCode(account.getTaxCode())
+                .createdAt(account.getCreatedAt())
+                .updateAt(account.getUpdatedAt())
+                .address(account.getAddress())
+                .avatarUrl(account.getAvatarUrl())
+                .token(token)
+                .build();
+    }
+
+    public static AccountRegisterResponse toRegisterResponse(Account account) {
+        if (account == null) return null;
+
+        return AccountRegisterResponse.builder()
+                .username(account.getUsername())
+                .phone(account.getPhone())
+                .fullName(account.getFullName())
+                .dateOfBirth(account.getDateOfBirth())
+                .gender(account.getGender())
+                .role(account.getRole())
+                .status(account.getStatus())
+                .createdAt(account.getCreatedAt())
+                .updateAt(account.getUpdatedAt())
+                .address(account.getAddress())
+                .email(account.getEmail())
                 .build();
     }
 }

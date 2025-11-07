@@ -5,6 +5,7 @@ import com.evdealer.evdealermanagement.dto.post.verification.PostVerifyResponse;
 import com.evdealer.evdealermanagement.dto.rate.ApprovalRateResponse;
 import com.evdealer.evdealermanagement.dto.vehicle.catalog.VehicleCatalogDTO;
 import com.evdealer.evdealermanagement.entity.account.Account;
+import com.evdealer.evdealermanagement.entity.post.PostPackage;
 import com.evdealer.evdealermanagement.entity.post.PostPayment;
 import com.evdealer.evdealermanagement.entity.product.Product;
 import com.evdealer.evdealermanagement.entity.transactions.ContractDocument;
@@ -135,6 +136,15 @@ public class StaffService {
         product.setStatus(Product.Status.ACTIVE);
         product.setRejectReason(null);
         product.setApprovedBy(currentUser);
+        PostPackage postPackage = payment.getPostPackage();
+        boolean isHot = false;
+
+        if (postPackage != null) {
+            if ("HOT".equalsIgnoreCase(postPackage.getBadgeLabel()) || Boolean.TRUE.equals(postPackage.getShowTopSearch())) {
+                isHot = true;
+            }
+        }
+        product.setIsHot(isHot);
         log.info("Verifying product id={} by user id={}, elevatedDays={}, expiresAt={}",
                 product.getId(), currentUser.getId(), elevatedDays, product.getExpiresAt());
 
@@ -155,11 +165,12 @@ public class StaffService {
 
         // Lưu product
         Product savedProduct = productRepository.save(product);
-        log.info("Product approved successfully: id={}, status={}, featuredEndAt={}, expiresAt={}",
+        log.info("Product approved successfully: id={}, status={}, featuredEndAt={}, expiresAt={}, isHot: {}",
                 savedProduct.getId(),
                 savedProduct.getStatus(),
                 savedProduct.getFeaturedEndAt(),
-                savedProduct.getExpiresAt());
+                savedProduct.getExpiresAt(),
+                savedProduct.getIsHot());
 
         PostVerifyResponse response = PostVerifyMapper.mapToPostVerifyResponse(savedProduct, payment);
         log.debug("Returning PostVerifyResponse: {}", response);
