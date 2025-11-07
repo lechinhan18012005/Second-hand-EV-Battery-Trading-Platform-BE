@@ -39,13 +39,7 @@ public class ProfileService implements IAccountService {
     }
 
     @Override
-<<<<<<< Updated upstream
-    public AccountProfileResponse updateProfile(String username, AccountUpdateRequest accountRequest) {
-        log.info("Starting updateProfile for username='{}'", username);
-=======
     public AccountProfileResponse updateProfile(String username, AccountUpdateRequest accountRequest, MultipartFile avatarUrl) {
->>>>>>> Stashed changes
-
         Account existingAccount = accountRepository.findByUsername(username)
                 .orElseThrow(() -> {
                     log.warn("User not found by username='{}'", username);
@@ -87,24 +81,12 @@ public class ProfileService implements IAccountService {
         // Map fields từ request sang entity
         log.debug("Applying AccountMapper.updateAccountFromRequest");
         AccountMapper.updateAccountFromRequest(accountRequest, existingAccount);
-<<<<<<< Updated upstream
 
-        // Chỉ update avatar nếu có file/url
-        if (accountRequest.getAvatarUrl() != null && !accountRequest.getAvatarUrl().isEmpty()) {
-            log.info("Updating avatar for accountId={}", existingAccount.getId());
-            validateAvatar(accountRequest.getAvatarUrl());
-            String avatarUrl = uploadAvatarToCloudinary(accountRequest.getAvatarUrl(), existingAccount.getId());
-            existingAccount.setAvatarUrl(avatarUrl);
-            log.debug("Avatar updated successfully: {}", avatarUrl);
-        } else {
-            log.debug("No avatar provided to update");
-=======
         //Chỉ update avatar nếu có file
         if(avatarUrl != null && !avatarUrl.isEmpty()) {
             validateAvatar(avatarUrl);
             String avatar = uploadAvatarToCloudinary(avatarUrl, existingAccount.getId());
             existingAccount.setAvatarUrl(avatar);
->>>>>>> Stashed changes
         }
 
         existingAccount.setUpdatedAt(VietNamDatetime.nowVietNam());
