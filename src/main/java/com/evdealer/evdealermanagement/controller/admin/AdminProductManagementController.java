@@ -80,10 +80,4 @@ public class AdminProductManagementController {
         VehicleBrandsResponse response = vehicleService.addNewVehicleBrand(request);
         return ResponseEntity.ok(response);
     }
-
-    // @GetMapping("/totalfee")
-    // @PreAuthorize("hasRole('STAFF') or hasRole('ADMIN')")
-    // public ResponseEntity<String> getTotalFeeDuringMonth() {
-    //
-    // }
 }

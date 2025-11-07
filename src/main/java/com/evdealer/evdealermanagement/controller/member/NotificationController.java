@@ -1,7 +1,6 @@
 package com.evdealer.evdealermanagement.controller.member;
 
 import com.evdealer.evdealermanagement.dto.account.custom.CustomAccountDetails;
-
 import com.evdealer.evdealermanagement.dto.notify.NotificationResponse;
 import com.evdealer.evdealermanagement.service.implement.NotificationService;
 import lombok.RequiredArgsConstructor;
@@ -14,7 +13,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.Map;
 
 @RestController

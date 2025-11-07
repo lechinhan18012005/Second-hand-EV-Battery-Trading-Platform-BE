@@ -41,14 +41,6 @@ public class VehicleController {
         return vehicleService.listAllVehicleNameAndLogo();
     }
 
-    // @PostMapping("/specs")
-    // public ResponseEntity<VehicleCatalogDTO> getVehicleSpecs(@RequestBody
-    // Map<String, String> body) {
-    // String name = body.get("name");
-    // VehicleCatalogDTO specs = geminiRestService.getVehicleSpecs(name);
-    // return ResponseEntity.ok(specs);
-    // }
-
     @PostMapping("/models/all")
     public List<VehicleModelResponse> getAllModels(@RequestBody VehicleModelRequest request) {
         return vehicleService.listAllVehicleModelsSorted(request);
