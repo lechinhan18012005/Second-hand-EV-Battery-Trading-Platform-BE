@@ -24,6 +24,7 @@ import com.evdealer.evdealermanagement.repository.VehicleDetailsRepository;
 import com.evdealer.evdealermanagement.service.contract.IProductService;
 import com.evdealer.evdealermanagement.utils.ProductSpecs;
 import com.evdealer.evdealermanagement.utils.SecurityUtils;
+import com.evdealer.evdealermanagement.utils.VietNamDatetime;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -306,9 +307,10 @@ public class ProductService implements IProductService {
             log.info("=== START getNewProducts ===");
 
             // Lấy nhiều hơn 12 để có buffer
-            List<Product> products = productRepository.findTop120ByStatusOrderByCreatedAtDesc(
+            List<Product> products = productRepository.findActiveFeaturedSorted(
                     Product.Status.ACTIVE,
-                    PageRequest.of(0, 120) // Lấy 120 để đảm bảo sau khi filter vẫn còn đủ
+                    VietNamDatetime.nowVietNam(),
+                    PageRequest.of(0,120) // Lấy 120 để đảm bảo sau khi filter vẫn còn đủ
             );
 
             log.info("Found {} products from DB", products.size());
@@ -328,7 +330,7 @@ public class ProductService implements IProductService {
                     .limit(120)
                     .collect(Collectors.toList());
 
-            log.info("=== END getNewProducts: {} products (requested 12) ===", result.size());
+            log.info("=== END getNewProducts: {} products (requested 120) ===", result.size());
 
             // Warning nếu không đủ
             if (result.size() < 120) {

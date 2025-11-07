@@ -26,29 +26,51 @@ public interface ProductRepository extends JpaRepository<Product, String>, JpaSp
     @Query("""
     SELECT p FROM Product p
     WHERE p.status = :status
-    AND EXISTS (
-        SELECT 1 FROM PostPayment pay WHERE pay.product = p
-    )
+      
+      AND EXISTS (
+          SELECT 1 FROM PostPayment pay WHERE pay.product = p
+      )
+     
+      AND NOT EXISTS (
+          SELECT 1
+          FROM PostPayment pay2
+          JOIN pay2.postPackage pkg2
+          WHERE pay2.product = p
+            
+            AND pay2.createdAt = (
+                SELECT MAX(pp.createdAt)
+                FROM PostPayment pp
+                WHERE pp.product = p
+            )
+            
+            AND pkg2.code IN ('SPECIAL', 'PRIORITY')
+            
+            AND p.featuredEndAt IS NOT NULL
+            AND p.featuredEndAt < :nowVN
+      )
     ORDER BY
-        (SELECT 
-            CASE 
-                WHEN pkg.code = 'SPECIAL' THEN 0
-                WHEN pkg.code = 'PRIORITY' THEN 1
-                WHEN pkg.code = 'STANDARD' THEN 2
-                ELSE 3
-            END
-         FROM PostPayment pay2
-         JOIN pay2.postPackage pkg
-         WHERE pay2.product = p
-         AND pay2.createdAt = (
-             SELECT MAX(pp.createdAt)
-             FROM PostPayment pp
-             WHERE pp.product = p
-         )
+        (
+            SELECT 
+                CASE 
+                    WHEN pkg.code = 'SPECIAL' THEN 0
+                    WHEN pkg.code = 'PRIORITY' THEN 1
+                    WHEN pkg.code = 'STANDARD' THEN 2
+                    ELSE 3
+                END
+            FROM PostPayment pay2
+            JOIN pay2.postPackage pkg
+            WHERE pay2.product = p
+              AND pay2.createdAt = (
+                  SELECT MAX(pp.createdAt)
+                  FROM PostPayment pp
+                  WHERE pp.product = p
+              )
         ) ASC,
         p.createdAt DESC
 """)
-    List<Product> findTop120ByStatusOrderByCreatedAtDesc(Product.Status status, Pageable pageable);
+    List<Product> findActiveFeaturedSorted(Product.Status status, LocalDateTime nowVN, Pageable pageable);
+
+
 
     Optional<Product> findById(@NotNull String productId);
 

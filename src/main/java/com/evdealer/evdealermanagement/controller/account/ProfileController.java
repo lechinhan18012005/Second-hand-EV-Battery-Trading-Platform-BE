@@ -3,12 +3,18 @@ package com.evdealer.evdealermanagement.controller.account;
 import com.evdealer.evdealermanagement.dto.account.profile.AccountProfileResponse;
 import com.evdealer.evdealermanagement.dto.account.profile.AccountUpdateRequest;
 import com.evdealer.evdealermanagement.service.implement.ProfileService;
-import jakarta.validation.Valid;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
+import java.util.List;
 
 @RestController
 @RequestMapping("/profile")
@@ -23,13 +29,27 @@ public class ProfileController {
         return profileService.getProfile(username);
     }
 
-    @PatchMapping("/me/update")
+    @PatchMapping(value = "/me/update", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasRole('MEMBER') or hasRole('ADMIN') or hasRole('STAFF')")
     public ResponseEntity<AccountProfileResponse> updateProfile(
-            @Valid @ModelAttribute AccountUpdateRequest request,
-            Authentication authentication) {
+            @RequestPart(value = "data", required = false) String dataJson,
+            @RequestPart(value = "avatarUrl", required = false) MultipartFile avatarUrl,
+            Authentication authentication
+    ) throws IOException {
+
+        AccountUpdateRequest request = new AccountUpdateRequest(); // tạo trống
+        if (dataJson != null && !dataJson.isBlank()) {
+            ObjectMapper mapper = new ObjectMapper();
+            mapper.registerModule(new JavaTimeModule()); // để đọc LocalDate
+            request = mapper.readValue(dataJson, AccountUpdateRequest.class);
+        }
+
         String username = authentication.getName();
-        return ResponseEntity.ok(profileService.updateProfile(username, request));
+        return ResponseEntity.ok(
+                profileService.updateProfile(username, request, avatarUrl)
+        );
     }
+
+
 
 }
