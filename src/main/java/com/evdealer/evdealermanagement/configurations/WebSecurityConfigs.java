@@ -72,7 +72,8 @@ public class WebSecurityConfigs {
                                 "/api/webhooks/eversign/document-complete",
                                 "/member/product/seller/**",
                                 "/swagger-ui/**",
-                                "/v3/api-docs/**"
+                                "/v3/api-docs/**",
+                                "/public/brands/**"
                         ).permitAll()
 
                         // Các endpoint yêu cầu role
