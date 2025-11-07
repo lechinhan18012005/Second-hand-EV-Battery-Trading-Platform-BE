@@ -47,8 +47,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             "/api/webhooks/eversign/document-complete",
             "/api/password/",
             "/profile/public",
-            "/member/product/seller"
+            "/member/product/seller",
+            "/swagger-ui",
+            "/swagger-ui/",
+            "/swagger-ui/index.html",
+            "/swagger-ui/swagger-initializer.js",
+            "/swagger-ui/swagger-ui.css",
+            "/swagger-ui/swagger-ui-bundle.js",
+            "/v3/api-docs",
+            "/v3/api-docs/",
+            "/v3/api-docs/swagger-config"
     );
+
 
     public JwtAuthenticationFilter(JwtService jwtService, AccountDetailsService userDetailsService, RedisService redisService) {
         this.jwtService = jwtService;

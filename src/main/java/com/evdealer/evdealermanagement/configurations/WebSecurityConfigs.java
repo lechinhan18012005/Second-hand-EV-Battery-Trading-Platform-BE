@@ -51,6 +51,7 @@ public class WebSecurityConfigs {
         return source;
     }
 
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
@@ -62,15 +63,17 @@ public class WebSecurityConfigs {
                         // Các endpoint công khai (public)
                         .requestMatchers(
                                 "/auth/**", "/oauth2/**", "/login/oauth2/**",
-                                "/vehicle/**", "/battery/**", "/public/brands",
+                                "/vehicle/**", "/battery/**",
                                 "/product/**", "/gemini/**",
                                 "/api/password/**",
-                                "/profile/public/**", // 👈 phải đặt ở đây, TRƯỚC /profile/**
+                                "/profile/public/**",  // 👈 phải đặt ở đây, TRƯỚC /profile/**
                                 "/api/vnpayment/**",
                                 "/api/momo/**",
                                 "/api/webhooks/eversign/document-complete",
-                                "/member/product/seller/**")
-                        .permitAll()
+                                "/member/product/seller/**",
+                                "/swagger-ui/**",
+                                "/v3/api-docs/**"
+                        ).permitAll()
 
                         // Các endpoint yêu cầu role
                         .requestMatchers("/admin/**").hasRole("ADMIN")
