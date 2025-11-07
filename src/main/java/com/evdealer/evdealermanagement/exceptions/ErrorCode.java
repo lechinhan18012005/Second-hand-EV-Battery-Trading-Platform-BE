@@ -123,6 +123,7 @@ public enum ErrorCode {
     BRAND_NAME_REQUIRED(4015, "Brand Name Is Required", HttpStatus.BAD_REQUEST),
     MODEL_EXISTS(4016, "Model Exists", HttpStatus.BAD_REQUEST),
     VERSION_EXISTS(4017, "Version Exists", HttpStatus.BAD_REQUEST),
+    BATTERY_BRAND_NOT_FOUND(4018, "Battery Brand Not found", HttpStatus.NOT_FOUND),
 
     REPORT_NOT_FOUND(4000, "Report not found", HttpStatus.NOT_FOUND),
     VEHICLE_CATEGORY_NOT_FOUND(4001, "Category not found", HttpStatus.NOT_FOUND),
@@ -132,10 +133,10 @@ public enum ErrorCode {
     OAUTH2_GOOGLE_PROCESS_FAILED(1901, "Error processing Google login", HttpStatus.BAD_REQUEST),
     OAUTH2_FACEBOOK_PROCESS_FAILED(1902, "Error processing Facebook login", HttpStatus.BAD_REQUEST),
 
-    //-NOTIFICATION (2000-3000)
+    // -NOTIFICATION (2000-3000)
     NO_READ_NOTIFICATIONS(2000, "Unread notifications", HttpStatus.BAD_REQUEST),
 
-    //-APPROVAL (3100-3200)
+    // -APPROVAL (3100-3200)
     DATE_MUST_REQUIRED(3100, "Date is required", HttpStatus.BAD_REQUEST);
 
     private final int code;

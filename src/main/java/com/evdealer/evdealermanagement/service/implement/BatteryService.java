@@ -2,6 +2,8 @@ package com.evdealer.evdealermanagement.service.implement;
 
 import com.evdealer.evdealermanagement.dto.battery.brand.BatteryBrandsResponse;
 import com.evdealer.evdealermanagement.dto.battery.brand.BatteryTypesResponse;
+import com.cloudinary.Cloudinary;
+import com.cloudinary.utils.ObjectUtils;
 import com.evdealer.evdealermanagement.dto.battery.brand.BatteryBrandsRequest;
 import com.evdealer.evdealermanagement.dto.battery.detail.BatteryDetailResponse;
 import com.evdealer.evdealermanagement.dto.post.battery.BatteryPostRequest;
@@ -14,6 +16,7 @@ import com.evdealer.evdealermanagement.entity.product.Product;
 import com.evdealer.evdealermanagement.entity.product.ProductImages;
 import com.evdealer.evdealermanagement.exceptions.AppException;
 import com.evdealer.evdealermanagement.exceptions.ErrorCode;
+import com.evdealer.evdealermanagement.mapper.battery.BatteryBrandMapper;
 import com.evdealer.evdealermanagement.mapper.battery.BatteryDetailsMapper;
 import com.evdealer.evdealermanagement.mapper.battery.BatteryMapper;
 import com.evdealer.evdealermanagement.repository.*;
@@ -26,9 +29,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -44,6 +47,7 @@ public class BatteryService {
     private final ProductRepository productRepository;
     private final PostService postService;
     private final ProductImagesRepository productImagesRepository;
+    private final Cloudinary cloudinary;
 
     /**
      * Lấy danh sách Battery Product IDs theo tên sản phẩm
@@ -236,11 +240,11 @@ public class BatteryService {
 
     @Transactional
     public BatteryPostResponse updateBatteryPost(String productId, BatteryPostRequest request,
-                                                 List<MultipartFile> images, String imagesMetaJson) {
+            List<MultipartFile> images, String imagesMetaJson) {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new AppException(ErrorCode.PRODUCT_NOT_FOUND));
 
-        if(product.getStatus() != Product.Status.DRAFT) {
+        if (product.getStatus() != Product.Status.DRAFT) {
             throw new AppException(ErrorCode.PRODUCT_NOT_DRAFT);
         }
 
@@ -279,7 +283,7 @@ public class BatteryService {
 
         List<ProductImageResponse> imageDtos = null;
 
-        if(images != null && !images.isEmpty()) {
+        if (images != null && !images.isEmpty()) {
 
             productImagesRepository.deleteAllByProduct(product);
             productImagesRepository.flush();
@@ -289,11 +293,11 @@ public class BatteryService {
             product.getImages().clear();
 
             List<ProductImages> newImages = imageDtos.stream()
-                            .map(dto -> ProductImages.builder()
-                                    .product(product)
-                                    .imageUrl(dto.getUrl())
-                                    .isPrimary(dto.isPrimary())
-                                    .build())
+                    .map(dto -> ProductImages.builder()
+                            .product(product)
+                            .imageUrl(dto.getUrl())
+                            .isPrimary(dto.isPrimary())
+                            .build())
                     .collect(Collectors.toList());
             product.getImages().addAll(newImages);
         }
@@ -301,7 +305,7 @@ public class BatteryService {
         productRepository.save(product);
         batteryDetailRepository.save(details);
 
-        return BatteryDetailsMapper.toBatteryPostResponse(product, details,request, imageDtos);
+        return BatteryDetailsMapper.toBatteryPostResponse(product, details, request, imageDtos);
     }
 
     @Transactional
@@ -311,15 +315,17 @@ public class BatteryService {
                 .orElseThrow(() -> new AppException(ErrorCode.BATTERY_NOT_FOUND));
 
         String batteryTypeId = details.getBatteryType().getId();
-        String brandId =  details.getBrand().getId();
+        String brandId = details.getBrand().getId();
 
-        List<Product> similar = new ArrayList<>(batteryDetailRepository.findSimilarBatteriesByType(batteryTypeId, productId));
-        List<Product> similarBrand = batteryDetailRepository.findSimilarBatteriesByBrand(brandId, batteryTypeId, productId);
+        List<Product> similar = new ArrayList<>(
+                batteryDetailRepository.findSimilarBatteriesByType(batteryTypeId, productId));
+        List<Product> similarBrand = batteryDetailRepository.findSimilarBatteriesByBrand(brandId, batteryTypeId,
+                productId);
 
         for (Product p : similarBrand) {
             boolean alreadyExisted = similar.stream()
                     .anyMatch(sp -> sp.getId().equals(p.getId()));
-            if(!alreadyExisted) {
+            if (!alreadyExisted) {
                 similar.add(p);
             }
         }
@@ -337,8 +343,8 @@ public class BatteryService {
                             .modelName(b != null && b.getBatteryType() != null ? b.getBatteryType().getName() : null)
                             .images(
                                     p.getImages() != null && !p.getImages().isEmpty()
-                                    ? p.getImages().get(0).getImageUrl() : null
-                            )
+                                            ? p.getImages().get(0).getImageUrl()
+                                            : null)
                             .build();
                 })
                 .collect(Collectors.toList());
@@ -351,6 +357,114 @@ public class BatteryService {
             throw new AppException(ErrorCode.BATTERY_NOT_FOUND);
 
         return BatteryDetailsMapper.toBatteryDetailResponse(b);
+    }
+
+    @Transactional
+    public BatteryBrandsResponse updateBatteryBrand(String brandId, String brandName, MultipartFile logoFile) {
+        log.info("Starting updateBatteryBrand with brandId={}, brandName='{}', hasLogoFile={}",
+                brandId, brandName, logoFile != null);
+
+        BatteryBrands brand = batteryBrandsRepository.findById(brandId)
+                .orElseThrow(() -> {
+                    log.warn("Battery brand not found with id={}", brandId);
+                    return new AppException(ErrorCode.BATTERY_BRAND_NOT_FOUND);
+                });
+
+        boolean changed = false;
+
+        // đổi tên (nếu có)
+        if (brandName != null) {
+            String newName = normalize(brandName);
+            log.debug("Requested new battery brand name='{}' (normalized='{}')", brandName, newName);
+
+            if (newName.isBlank()) {
+                log.warn("Battery brand name is blank after normalization");
+                throw new AppException(ErrorCode.BRAND_NAME_REQUIRED);
+            }
+
+            // chống trùng tên với brand khác
+            batteryBrandsRepository.findByNameIgnoreCase(newName).ifPresent(other -> {
+                if (!other.getId().equals(brand.getId())) {
+                    log.warn("Duplicate battery brand name '{}' found (existing brandId={})", newName, other.getId());
+                    throw new AppException(ErrorCode.BRAND_EXISTS);
+                }
+            });
+
+            if (!newName.equalsIgnoreCase(brand.getName())) {
+                log.info("Updating battery brand name from '{}' to '{}'", brand.getName(), newName);
+                brand.setName(newName);
+                changed = true;
+            } else {
+                log.debug("Battery brand name '{}' unchanged", brand.getName());
+            }
+        } else {
+            log.debug("No brandName provided for battery brand update");
+        }
+
+        // đổi logo (nếu có)
+        if (logoFile != null && !logoFile.isEmpty()) {
+            log.info("Updating battery brand logo for brandId={}", brandId);
+            validateLogo(logoFile);
+            try {
+                String url = uploadToCloudinary(logoFile, "eco-green/brands/battery");
+                brand.setLogoUrl(url);
+                changed = true;
+                log.debug("Uploaded new battery brand logo successfully: {}", url);
+            } catch (Exception e) {
+                log.error("Battery logo upload failed for brandId={} - {}", brandId, e.getMessage(), e);
+                throw e;
+            }
+        } else {
+            log.debug("No logo file provided for battery brand update");
+        }
+
+        if (changed) {
+            batteryBrandsRepository.save(brand);
+            log.info("Battery brand updated successfully: id={}, name='{}', logo='{}'",
+                    brand.getId(), brand.getName(), brand.getLogoUrl());
+        } else {
+            log.info("No changes detected for battery brandId={}", brandId);
+        }
+
+        BatteryBrandsResponse response = BatteryBrandMapper.mapToBatteryBrandsResponse(brand);
+        log.debug("Returning BatteryBrandsResponse: {}", response);
+        return response;
+    }
+
+    private String normalize(String s) {
+        if (s == null)
+            return "";
+        String t = s.trim().replaceAll("\\s+", " ");
+        return java.text.Normalizer.normalize(t, java.text.Normalizer.Form.NFC);
+    }
+
+    private void validateLogo(MultipartFile image) {
+        if (image == null || image.isEmpty()) {
+            throw new AppException(ErrorCode.MIN_1_IMAGE);
+        }
+        if (image.getSize() > 6L * 1024 * 1024) {
+            throw new AppException(ErrorCode.IMAGE_TOO_LARGE);
+        }
+        String ct = image.getContentType() == null ? "" : image.getContentType();
+        if (!(ct.equals("image/jpeg") || ct.equals("image/png"))) {
+            throw new AppException(ErrorCode.UNSUPPORTED_IMAGE_TYPE);
+        }
+    }
+
+    private String uploadToCloudinary(MultipartFile file, String folder) {
+        try {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> up = (Map<String, Object>) cloudinary.uploader().upload(
+                    file.getBytes(),
+                    ObjectUtils.asMap(
+                            "folder", folder,
+                            "resource_type", "image",
+                            "overwrite", true,
+                            "unique_filename", true));
+            return (String) up.get("secure_url");
+        } catch (Exception e) {
+            throw new AppException(ErrorCode.IMAGE_UPLOAD_FAILED);
+        }
     }
 
 }
