@@ -89,4 +89,7 @@ public interface ProductRepository extends JpaRepository<Product, String>, JpaSp
   List<Product> findExpiredAndActive(@Param("now") LocalDateTime now);
 
   Page<Product> findBySeller_IdAndStatus(String sellerId, Product.Status status, Pageable pageable);
+
+  Page<Product> findBySeller_IdAndStatusIn(String sellerId, List<Product.Status> statuses, Pageable pageable);
+
 }

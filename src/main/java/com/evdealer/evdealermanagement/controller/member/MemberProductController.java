@@ -109,7 +109,7 @@ public class MemberProductController {
     public PageResponse<ProductDetail> listActiveProductsBySeller(
             @PathVariable("sellerId") String sellerId,
             @PageableDefault(size = 10, sort = "updatedAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        return productService.listActiveBySeller(sellerId, pageable);
+        return productService.listActiveOrSoldBySeller(sellerId, pageable);
     }
 
 }

@@ -603,12 +603,14 @@ public class ProductService implements IProductService {
     }
 
     @Transactional(readOnly = true)
-    public PageResponse<ProductDetail> listActiveBySeller(String sellerId, Pageable pageable) {
+    public PageResponse<ProductDetail> listActiveOrSoldBySeller(String sellerId, Pageable pageable) {
 
+        // Lọc cả ACTIVE và SOLD
         Page<Product> page = productRepository
-                .findBySeller_IdAndStatus(sellerId, Product.Status.ACTIVE, pageable);
+                .findBySeller_IdAndStatusIn(sellerId, List.of(Product.Status.ACTIVE, Product.Status.SOLD), pageable);
 
         return PageResponse.fromPage(page, ProductDetail::fromEntity);
     }
+
 
 }
