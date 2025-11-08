@@ -32,10 +32,11 @@ public class NotificationService {
     private final AccountRepository accountRepo;
     private final NotificationMapper  mapper;
 
-
     @Transactional
     public Notification create(String accountId, String title, String content, Notification.NotificationType type, String refId) {
-        Account account = accountRepo.findById(accountId).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        Account account = accountRepo.findById(accountId)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+
         Notification n = Notification.builder()
                 .account(account)
                 .title(title)
@@ -56,7 +57,7 @@ public class NotificationService {
 
     @Transactional(readOnly = true)
     public Page<NotificationResponse> listMyNotifications(String accountId, Pageable pageable) {
-        Page<Notification> page = notificationRepository.findByAccountId(accountId, pageable);
+        Page<Notification> page = notificationRepository.findByAccountIdOrderByCreatedAtDesc(accountId, pageable);
         return page.map(mapper::toDTO);
     }
 

@@ -35,4 +35,5 @@ public interface NotificationRepository extends JpaRepository<Notification, Stri
     @Query("SELECT n FROM Notification n WHERE n.account.id = :accountId AND n.read = false ORDER BY n.createdAt DESC ")
     Page<Notification> findUnreadByAccountId(@Param("accountId") String accountId, Pageable pageable);
 
+    Page<Notification> findByAccountIdOrderByCreatedAtDesc(String accountId, Pageable pageable);
 }
