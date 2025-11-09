@@ -14,6 +14,7 @@ import com.evdealer.evdealermanagement.service.implement.BatteryService;
 import com.evdealer.evdealermanagement.service.implement.MemberService;
 import com.evdealer.evdealermanagement.service.implement.ProductService;
 import com.evdealer.evdealermanagement.service.implement.VehicleService;
+import com.evdealer.evdealermanagement.utils.JsonValidationUtils;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -82,10 +83,20 @@ public class MemberProductController {
             @RequestPart(value = "data", required = false) String dataJson,
             @RequestPart(value = "images", required = false) List<MultipartFile> images,
             @RequestPart(value = "imagesMeta", required = false) String imagesMetaJson,
-            @AuthenticationPrincipal CustomAccountDetails user) throws JsonProcessingException {
+            @AuthenticationPrincipal CustomAccountDetails user) throws Exception {
         BatteryPostRequest request = null;
         if (dataJson != null && !dataJson.isBlank()) {
-            request = new ObjectMapper().readValue(dataJson, BatteryPostRequest.class);
+            request = JsonValidationUtils.parseAndValidateJson(
+                    dataJson,
+                    BatteryPostRequest.class,
+                    this,
+                    "updateBattery",
+                    String.class,          // @PathVariable String productId
+                    String.class,          // @RequestPart("data")
+                    List.class,            // @RequestPart("images")
+                    String.class,          // @RequestPart("imagesMeta")
+                    CustomAccountDetails.class  // @AuthenticationPrincipal
+            );
         }
         return batteryService.updateBatteryPost(productId, request, images, imagesMetaJson);
     }
@@ -97,10 +108,21 @@ public class MemberProductController {
             @RequestPart(value = "data", required = false) String dataJson,
             @RequestPart(value = "images", required = false) List<MultipartFile> images,
             @RequestPart(value = "imagesMeta", required = false) String imagesMetaJson,
-            @AuthenticationPrincipal CustomAccountDetails user) throws JsonProcessingException {
+            @AuthenticationPrincipal CustomAccountDetails user) throws Exception {
         VehiclePostRequest request = null;
+
         if (dataJson != null && !dataJson.isBlank()) {
-            request = new ObjectMapper().readValue(dataJson, VehiclePostRequest.class);
+            request = JsonValidationUtils.parseAndValidateJson(
+                    dataJson,
+                    VehiclePostRequest.class,
+                    this,
+                    "updateVehicle",
+                    String.class,               // productId
+                    String.class,               // data
+                    List.class,                 // images
+                    String.class,               // imagesMeta
+                    CustomAccountDetails.class  // user
+            );
         }
         return vehicleService.updateVehiclePost(productId, request, images, imagesMetaJson);
     }

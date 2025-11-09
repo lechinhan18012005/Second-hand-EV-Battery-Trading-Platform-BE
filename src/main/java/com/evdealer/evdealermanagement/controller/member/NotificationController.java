@@ -40,7 +40,7 @@ public class NotificationController {
     public ResponseEntity<Map<String, Object>> markAsRead(@AuthenticationPrincipal CustomAccountDetails user,
             @PathVariable String id) {
         String accountId = user.getAccountId();
-        NotificationResponse res = notificationService.markAsRead(accountId, id);
+        NotificationResponse res    = notificationService.markAsRead(accountId, id);
         return ResponseEntity.ok(Map.of(
                 "message", res.isRead() ? "Đã đánh dấu là đã đọc" : "Thông báo đã được đọc trước đó",
                 "notification", res));

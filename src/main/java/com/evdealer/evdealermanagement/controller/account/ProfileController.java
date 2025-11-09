@@ -4,17 +4,30 @@ import com.evdealer.evdealermanagement.dto.account.profile.AccountProfileRespons
 import com.evdealer.evdealermanagement.dto.account.profile.AccountUpdateRequest;
 import com.evdealer.evdealermanagement.dto.account.profile.ProfilePublicDto;
 import com.evdealer.evdealermanagement.service.implement.ProfileService;
+import com.evdealer.evdealermanagement.utils.JsonValidationUtils;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.Valid;
+import jakarta.validation.Validator;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.MethodParameter;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
+import org.springframework.validation.BeanPropertyBindingResult;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.lang.reflect.Method;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 
 @RestController
 @RequestMapping("/profile")
@@ -34,19 +47,23 @@ public class ProfileController {
     public ResponseEntity<AccountProfileResponse> updateProfile(
             @RequestPart(value = "data", required = false) String dataJson,
             @RequestPart(value = "avatarUrl", required = false) MultipartFile avatarUrl,
-            Authentication authentication) throws IOException {
-
-        AccountUpdateRequest request = new AccountUpdateRequest(); // tạo trống
-        if (dataJson != null && !dataJson.isBlank()) {
-            ObjectMapper mapper = new ObjectMapper();
-            mapper.registerModule(new JavaTimeModule()); // để đọc LocalDate
-            request = mapper.readValue(dataJson, AccountUpdateRequest.class);
-        }
-
+            Authentication authentication
+    ) throws Exception {
+        AccountUpdateRequest request = JsonValidationUtils.parseAndValidateJson(
+                dataJson,
+                AccountUpdateRequest.class,
+                this,
+                "updateProfile",
+                String.class,
+                MultipartFile.class,
+                Authentication.class
+        );
         String username = authentication.getName();
         return ResponseEntity.ok(
-                profileService.updateProfile(username, request, avatarUrl));
+                profileService.updateProfile(username, request, avatarUrl)
+        );
     }
+
 
     @GetMapping("/public")
     public ResponseEntity<ProfilePublicDto> getProfilePublic(@RequestParam String username) {
