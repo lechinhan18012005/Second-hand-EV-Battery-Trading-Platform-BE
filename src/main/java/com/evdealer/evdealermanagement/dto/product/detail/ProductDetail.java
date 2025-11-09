@@ -39,6 +39,9 @@ public class ProductDetail {
 
     private String status;
     private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+    private LocalDateTime expiresAt;
+    private LocalDateTime featuredEndAt;
 
     private String addressDetail;
     private String city;
@@ -134,8 +137,7 @@ public class ProductDetail {
                 .sellerAvatarUrl(
                         product.getSeller() != null && product.getSeller().getAvatarUrl() != null
                                 ? product.getSeller().getAvatarUrl()
-                                : null
-                )
+                                : null)
                 .build();
     }
 }

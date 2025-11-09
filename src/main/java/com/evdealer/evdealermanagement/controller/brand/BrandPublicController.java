@@ -1,13 +1,15 @@
 package com.evdealer.evdealermanagement.controller.brand;
 
-import java.util.List;
-
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.evdealer.evdealermanagement.dto.brand.BrandItemResponse;
-import com.evdealer.evdealermanagement.service.implement.BrandService;
+import com.evdealer.evdealermanagement.dto.common.PageResponse;
+import com.evdealer.evdealermanagement.repository.BrandService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -19,7 +21,8 @@ public class BrandPublicController {
     private final BrandService brandService;
 
     @GetMapping
-    public List<BrandItemResponse> listAll() {
-        return brandService.listAllBrands();
+    public PageResponse<BrandItemResponse> listAll(
+            @PageableDefault(size = 12, sort = "name", direction = Sort.Direction.ASC) Pageable pageable) {
+        return brandService.listAllBrands(pageable);
     }
 }

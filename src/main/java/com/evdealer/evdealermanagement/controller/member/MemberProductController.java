@@ -108,7 +108,7 @@ public class MemberProductController {
     @GetMapping("/seller/{sellerId}/products")
     public PageResponse<ProductDetail> listActiveProductsBySeller(
             @PathVariable("sellerId") String sellerId,
-            @PageableDefault(size = 10, sort = "updatedAt", direction = Sort.Direction.DESC) Pageable pageable) {
+            @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         return productService.listActiveOrSoldBySeller(sellerId, pageable);
     }
 

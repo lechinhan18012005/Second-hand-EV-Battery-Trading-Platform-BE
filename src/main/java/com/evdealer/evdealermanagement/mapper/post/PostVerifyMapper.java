@@ -119,13 +119,14 @@ public class PostVerifyMapper {
                 .sellerName(p.getSeller() != null ? p.getSeller().getFullName() : null)
                 .sellerId(p.getSeller() != null ? p.getSeller().getId() : null)
                 .sellerPhone(p.getSellerPhone())
-                .updateAt(p.getUpdatedAt()) // Map từ updatedAt
+                .createdAt(p.getCreatedAt())
+                .updateAt(p.getUpdatedAt())
                 .brandName(brandName)
                 .batteryType(batteryType)
                 .modelName(modelName)
                 .versionName(version)
-                .featuredEndAt(featuredEndAt) // Sử dụng giá trị đã tính toán
-                .expiresAt(expiresAt) // Sử dụng giá trị đã tính toán
+                .featuredEndAt(featuredEndAt)
+                .expiresAt(expiresAt)
                 .postDays(postDays)
                 .featuredDays(featuredDays)
                 .packageName(payment != null && payment.getPostPackage() != null
