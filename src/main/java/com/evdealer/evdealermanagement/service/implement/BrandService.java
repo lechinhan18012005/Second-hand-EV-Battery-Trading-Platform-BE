@@ -1,6 +1,7 @@
 package com.evdealer.evdealermanagement.service.implement;
 
 import com.evdealer.evdealermanagement.dto.brand.BrandItemResponse;
+import com.evdealer.evdealermanagement.dto.common.PageResponse;
 import com.evdealer.evdealermanagement.entity.battery.BatteryBrands;
 import com.evdealer.evdealermanagement.entity.vehicle.VehicleBrands;
 import com.evdealer.evdealermanagement.exceptions.ResourceNotFoundException;
@@ -9,6 +10,10 @@ import com.evdealer.evdealermanagement.repository.BatteryDetailsRepository;
 import com.evdealer.evdealermanagement.repository.VehicleBrandsRepository;
 import com.evdealer.evdealermanagement.repository.VehicleDetailsRepository;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -104,8 +109,10 @@ public class BrandService {
             System.out.println(">>> Type: VEHICLE");
             var brand = vehicleRepo.findById(id)
                     .orElseThrow(() -> new ResourceNotFoundException("Vehicle brand not found"));
-            if (name != null) brand.setName(name);
-            if (logoUrl != null) brand.setLogoUrl(logoUrl);
+            if (name != null)
+                brand.setName(name);
+            if (logoUrl != null)
+                brand.setLogoUrl(logoUrl);
             vehicleRepo.save(brand);
             return BrandItemResponse.builder()
                     .id(brand.getId())
@@ -117,8 +124,10 @@ public class BrandService {
             System.out.println(">>> Type: BATTERY");
             var brand = batteryRepo.findById(id)
                     .orElseThrow(() -> new ResourceNotFoundException("Battery brand not found"));
-            if (name != null) brand.setName(name);
-            if (logoUrl != null) brand.setLogoUrl(logoUrl);
+            if (name != null)
+                brand.setName(name);
+            if (logoUrl != null)
+                brand.setLogoUrl(logoUrl);
             batteryRepo.save(brand);
             return BrandItemResponse.builder()
                     .id(brand.getId())
@@ -130,7 +139,6 @@ public class BrandService {
             throw new IllegalArgumentException("Invalid brand type: " + type);
         }
     }
-
 
     // --- Xóa brand ---
     @Transactional
@@ -160,5 +168,28 @@ public class BrandService {
         return false;
     }
 
+    public PageResponse<BrandItemResponse> listAllBrands(Pageable pageable) {
+        List<BrandItemResponse> all = new ArrayList<>();
 
+        all.addAll(vehicleRepo.findAll().stream()
+                .map(v -> BrandItemResponse.builder()
+                        .id(v.getId()).name(v.getName())
+                        .logoUrl(v.getLogoUrl()).type("VEHICLE").build())
+                .toList());
+
+        all.addAll(batteryRepo.findAll().stream()
+                .map(b -> BrandItemResponse.builder()
+                        .id(b.getId()).name(b.getName())
+                        .logoUrl(b.getLogoUrl()).type("BATTERY").build())
+                .toList());
+
+        all.sort(Comparator.comparing(BrandItemResponse::getName, String.CASE_INSENSITIVE_ORDER));
+
+        int start = (int) pageable.getOffset();
+        int end = Math.min(start + pageable.getPageSize(), all.size());
+        List<BrandItemResponse> content = (start <= end) ? all.subList(start, end) : List.of();
+
+        Page<BrandItemResponse> page = new PageImpl<>(content, pageable, all.size());
+        return PageResponse.fromPage(page, x -> x);
+    }
 }
