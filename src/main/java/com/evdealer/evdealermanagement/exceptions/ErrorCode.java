@@ -124,6 +124,7 @@ public enum ErrorCode {
     MODEL_EXISTS(4016, "Model Exists", HttpStatus.BAD_REQUEST),
     VERSION_EXISTS(4017, "Version Exists", HttpStatus.BAD_REQUEST),
     BATTERY_BRAND_NOT_FOUND(4018, "Battery Brand Not found", HttpStatus.NOT_FOUND),
+    BATTERY_TYPE_NAME_REQUIRED(4019, "Battery Type Name is required", HttpStatus.BAD_REQUEST),
 
     REPORT_NOT_FOUND(4000, "Report not found", HttpStatus.NOT_FOUND),
     VEHICLE_CATEGORY_NOT_FOUND(4001, "Category not found", HttpStatus.NOT_FOUND),

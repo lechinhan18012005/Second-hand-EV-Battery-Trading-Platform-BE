@@ -21,6 +21,7 @@ public class PostVerifyResponse {
     private String title;
     private String thumbnail;
     private Product.ProductType productType;
+    private LocalDateTime createdAt;
     private LocalDateTime updateAt;
 
     // ========== Model / Version ==========

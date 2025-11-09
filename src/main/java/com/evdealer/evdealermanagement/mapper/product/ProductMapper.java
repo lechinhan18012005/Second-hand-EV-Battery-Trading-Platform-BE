@@ -81,6 +81,9 @@ public class ProductMapper {
                 .conditionType(product.getConditionType() != null ? product.getConditionType().name() : null)
                 .status(product.getStatus() != null ? product.getStatus().name() : null)
                 .createdAt(product.getCreatedAt())
+                .updatedAt(product.getUpdatedAt())
+                .expiresAt(product.getExpiresAt())
+                .featuredEndAt(product.getFeaturedEndAt())
 
                 // Seller info
                 .sellerId(product.getSeller() != null ? product.getSeller().getId() : null)

@@ -6,12 +6,15 @@ import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;
 import com.evdealer.evdealermanagement.dto.battery.brand.BatteryBrandsRequest;
 import com.evdealer.evdealermanagement.dto.battery.detail.BatteryDetailResponse;
+import com.evdealer.evdealermanagement.dto.battery.type.BatteryTypeResponse;
+import com.evdealer.evdealermanagement.dto.battery.type.CreateBatteryTypeRequest;
 import com.evdealer.evdealermanagement.dto.post.battery.BatteryPostRequest;
 import com.evdealer.evdealermanagement.dto.post.battery.BatteryPostResponse;
 import com.evdealer.evdealermanagement.dto.post.common.ProductImageResponse;
 import com.evdealer.evdealermanagement.dto.product.similar.SimilarProductResponse;
 import com.evdealer.evdealermanagement.entity.battery.BatteryBrands;
 import com.evdealer.evdealermanagement.entity.battery.BatteryDetails;
+import com.evdealer.evdealermanagement.entity.battery.BatteryTypes;
 import com.evdealer.evdealermanagement.entity.product.Product;
 import com.evdealer.evdealermanagement.entity.product.ProductImages;
 import com.evdealer.evdealermanagement.exceptions.AppException;
@@ -48,6 +51,7 @@ public class BatteryService {
     private final PostService postService;
     private final ProductImagesRepository productImagesRepository;
     private final Cloudinary cloudinary;
+    private final BatteryTypesRepository batteryTypeRepository;
 
     /**
      * Lấy danh sách Battery Product IDs theo tên sản phẩm
@@ -465,6 +469,75 @@ public class BatteryService {
         } catch (Exception e) {
             throw new AppException(ErrorCode.IMAGE_UPLOAD_FAILED);
         }
+    }
+
+    @Transactional
+    public BatteryBrandsResponse createBatteryBrand(String brandName, MultipartFile logoFile) {
+        String name = normalize(brandName);
+        log.info("Starting createBatteryBrand name='{}'", name);
+
+        if (name == null || name.isBlank()) {
+            log.warn("Battery brand name is blank");
+            throw new AppException(ErrorCode.BRAND_NAME_REQUIRED);
+        }
+
+        // Chống trùng tên
+        batteryBrandsRepository.findByNameIgnoreCase(name).ifPresent(b -> {
+            log.warn("Battery brand '{}' already exists (id={})", name, b.getId());
+            throw new AppException(ErrorCode.BRAND_EXISTS);
+        });
+
+        // Bắt buộc logo khi tạo mới
+        validateLogo(logoFile);
+
+        String secureUrl;
+        try {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> up = (Map<String, Object>) cloudinary.uploader().upload(
+                    logoFile.getBytes(),
+                    ObjectUtils.asMap(
+                            "folder", "eco-green/brands/battery",
+                            "resource_type", "image",
+                            "overwrite", true,
+                            "unique_filename", true));
+            secureUrl = (String) up.get("secure_url");
+            log.debug("Uploaded battery brand logo OK: {}", secureUrl);
+        } catch (Exception e) {
+            log.error("Cloudinary upload error: {}", e.getMessage(), e);
+            throw new AppException(ErrorCode.IMAGE_UPLOAD_FAILED);
+        }
+
+        BatteryBrands entity = new BatteryBrands();
+        entity.setName(name);
+        entity.setLogoUrl(secureUrl);
+        BatteryBrands saved = batteryBrandsRepository.save(entity);
+
+        log.info("Created battery brand id={} name='{}'", saved.getId(), saved.getName());
+        return BatteryMapper.toBrandRes(saved);
+    }
+
+    @Transactional
+    public BatteryTypeResponse createBatteryType(CreateBatteryTypeRequest req) {
+        String typeName = normalize(req.getName());
+        log.info("Starting createBatteryType name='{}'", typeName);
+
+        if (typeName == null || typeName.isBlank()) {
+            log.warn("Battery type name blank");
+            throw new AppException(ErrorCode.BATTERY_TYPE_NAME_REQUIRED);
+        }
+
+        // Chống trùng tên
+        batteryTypeRepository.findByNameIgnoreCase(typeName).ifPresent(t -> {
+            log.warn("Battery type '{}' already exists (id={})", typeName, t.getId());
+            throw new AppException(ErrorCode.BRAND_EXISTS); // hoặc tạo ErrorCode riêng: BATTERY_TYPE_EXISTS
+        });
+
+        BatteryTypes entity = new BatteryTypes();
+        entity.setName(typeName);
+        BatteryTypes saved = batteryTypeRepository.save(entity);
+
+        log.info("Created battery type id={} name='{}'", saved.getId(), saved.getName());
+        return BatteryMapper.toTypeRes(saved);
     }
 
 }
