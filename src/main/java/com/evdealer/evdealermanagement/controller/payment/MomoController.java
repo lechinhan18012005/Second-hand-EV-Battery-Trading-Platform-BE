@@ -112,7 +112,7 @@ public class MomoController {
 
             // 4) Redirect về frontend (giống style VNPay): giữ nguyên query string mà MoMo
             // trả về
-            String redirectUrl = frontendUrl + "/payment/momo-return" + (rawQuery != null ? ("?" + rawQuery) : "");
+            String redirectUrl = frontendUrl + "/post/manage" + (rawQuery != null ? ("?" + rawQuery) : "");
             log.info("🔄 Redirecting to: {}", redirectUrl);
             response.sendRedirect(redirectUrl);
 
