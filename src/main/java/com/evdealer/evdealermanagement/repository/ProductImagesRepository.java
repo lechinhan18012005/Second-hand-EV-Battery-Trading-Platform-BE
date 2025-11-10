@@ -10,4 +10,5 @@ import com.evdealer.evdealermanagement.entity.product.ProductImages;
 public interface ProductImagesRepository extends JpaRepository<ProductImages, String> {
     List<ProductImages> findByProductIdOrderByPositionAsc(String productId);
     void deleteAllByProduct(Product product);
+    List<ProductImages> findByProduct(Product product);
 }

@@ -90,6 +90,11 @@ public enum ErrorCode {
     INVALID_ID_PACKAGE(1516, "Invalid Id Package", HttpStatus.BAD_REQUEST),
     PURCHASE_REQUEST_NOT_FOUND(1550, "Purchase request not found", HttpStatus.NOT_FOUND),
     PAYMENT_NOT_RETRIABLE(1010, "Payment cannot be retried", HttpStatus.BAD_REQUEST),
+    PRODUCT_NOT_PENDING_PAYMENT(1011, "Product is not pending payment", HttpStatus.BAD_REQUEST),
+    PAYMENT_ALREADY_COMPLETED(1012, "Payment is already completed", HttpStatus.BAD_REQUEST),
+    PAYMENT_METHOD_MISSING(1013, "Payment method is missing", HttpStatus.BAD_REQUEST),
+    INVALID_PAYMENT_METHOD(1014, "Payment method is invalid", HttpStatus.BAD_REQUEST),
+    PAYMENT_METHOD_UNSUPPORTED(1015, "Payment method is not supported", HttpStatus.BAD_REQUEST),
 
     // --- Wishlist Errors (Codes 1600 - 1699) ---
     WISHLIST_NOT_FOUND(1601, "Wishlist not found", HttpStatus.NOT_FOUND),

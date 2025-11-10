@@ -8,6 +8,7 @@ import com.evdealer.evdealermanagement.dto.battery.brand.BatteryBrandsRequest;
 import com.evdealer.evdealermanagement.dto.battery.detail.BatteryDetailResponse;
 import com.evdealer.evdealermanagement.dto.battery.type.BatteryTypeResponse;
 import com.evdealer.evdealermanagement.dto.battery.type.CreateBatteryTypeRequest;
+import com.evdealer.evdealermanagement.dto.battery.update.BatteryUpdateProductRequest;
 import com.evdealer.evdealermanagement.dto.post.battery.BatteryPostRequest;
 import com.evdealer.evdealermanagement.dto.post.battery.BatteryPostResponse;
 import com.evdealer.evdealermanagement.dto.post.common.ProductImageResponse;
@@ -243,7 +244,7 @@ public class BatteryService {
     }
 
     @Transactional
-    public BatteryPostResponse updateBatteryPost(String productId, BatteryPostRequest request,
+    public BatteryPostResponse updateBatteryPost(String productId, BatteryUpdateProductRequest request,
             List<MultipartFile> images, String imagesMetaJson) {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new AppException(ErrorCode.PRODUCT_NOT_FOUND));
@@ -288,6 +289,19 @@ public class BatteryService {
         List<ProductImageResponse> imageDtos = null;
 
         if (images != null && !images.isEmpty()) {
+
+            List<ProductImages> oldImages = productImagesRepository.findByProduct(product);
+
+            for (ProductImages img : oldImages) {
+                try {
+                    if (img.getPublicId() != null) {
+                        cloudinary.uploader().destroy(img.getPublicId(), ObjectUtils.emptyMap());
+                        log.info("Deleted old image from Cloudinary: {}", img.getPublicId());
+                    }
+                } catch (Exception e) {
+                    log.warn("Failed to delete image {}: {}", img.getPublicId(), e.getMessage());
+                }
+            }
 
             productImagesRepository.deleteAllByProduct(product);
             productImagesRepository.flush();

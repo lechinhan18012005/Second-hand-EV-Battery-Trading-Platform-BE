@@ -4,6 +4,7 @@ import com.evdealer.evdealermanagement.dto.post.common.ProductImageResponse;
 import com.evdealer.evdealermanagement.dto.post.vehicle.VehiclePostRequest;
 import com.evdealer.evdealermanagement.dto.post.vehicle.VehiclePostResponse;
 import com.evdealer.evdealermanagement.dto.vehicle.brand.VehicleBrandsResponse;
+import com.evdealer.evdealermanagement.dto.vehicle.update.VehicleUpdateProductRequest;
 import com.evdealer.evdealermanagement.entity.product.Product;
 import com.evdealer.evdealermanagement.entity.vehicle.VehicleBrands;
 import com.evdealer.evdealermanagement.entity.vehicle.VehicleDetails;
@@ -22,7 +23,7 @@ public class VehicleMapper {
 
     public static VehiclePostResponse toVehiclePostResponse(Product product,
                                                             VehicleDetails details,
-                                                            VehiclePostRequest request,
+                                                            VehicleUpdateProductRequest request,
                                                             List<ProductImageResponse> uploadedImages) {
         if (product == null || details == null) return null;
 
