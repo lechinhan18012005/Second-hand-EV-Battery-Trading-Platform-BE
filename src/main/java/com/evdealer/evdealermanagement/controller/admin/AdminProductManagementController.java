@@ -48,7 +48,7 @@ public class AdminProductManagementController {
     @GetMapping("/all")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<PageResponse<ProductDetail>> getAllProducts(
-            @PageableDefault(page = 0, size = 12, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+            @PageableDefault(page = 0, size = 12, sort = "updatedAt", direction = Sort.Direction.DESC) Pageable pageable) {
 
         PageResponse<ProductDetail> products = adminService.getAllProducts(pageable);
         return ResponseEntity.ok(products);
