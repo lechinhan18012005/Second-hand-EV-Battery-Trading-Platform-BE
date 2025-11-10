@@ -356,18 +356,58 @@ public class ProductService implements IProductService {
 
         Product.ProductType emunType = parseTypeOrNull(type);
 
+        Specification<Product> brandSpec;
+        if (emunType == Product.ProductType.VEHICLE) {
+            log.info("Using hasVehicleBrandId with brand: {}", brand);
+            brandSpec = ProductSpecs.hasVehicleBrandId(brand);
+        } else {
+            log.info("Using hasBatteryBrandId with brand: {}", brand);
+            brandSpec = ProductSpecs.hasBatteryBrandId(brand);
+        }
+
         Specification<Product> spec = Specification
                 .where(ProductSpecs.hasStatus(Product.Status.ACTIVE))
                 .and(ProductSpecs.titleLike(name))
                 .and(ProductSpecs.hasType(emunType))
-                .and(emunType == Product.ProductType.VEHICLE ? ProductSpecs.hasVehicleBrandId(brand)
-                        : ProductSpecs.hasBatteryBrandId(brand))
+                .and(brandSpec)
                 .and(ProductSpecs.cityEq(city))
                 .and(ProductSpecs.districtEq(district))
                 .and(ProductSpecs.priceGte(minPrice))
                 .and(ProductSpecs.priceLte(maxPrice))
                 .and(ProductSpecs.yearGte(yearFrom))
                 .and(ProductSpecs.yearLte(yearTo));
+
+        Page<Product> page = productRepository.findAll(spec, pageable);
+
+        String accountId = SecurityUtils.getCurrentAccountId(); // có thể null nếu chưa đăng nhập
+        List<ProductDetail> content;
+        try {
+            content = wishlistService.attachWishlistFlag(
+                    accountId,
+                    page.getContent(),
+                    ProductMapper::toDetailDto, // Product -> ProductDetail
+                    ProductDetail::setIsWishlisted);
+        } catch (Exception e) {
+            // Không để toàn API fail vì wishlist thất bại
+            content = page.getContent().stream().map(ProductMapper::toDetailDto).toList();
+        }
+
+        // Lưu ý: thứ tự trả về đã theo pageable.sort (không cần sort lại ở đây)
+        return PageResponse.of(content, page);
+    }
+
+
+
+
+    @Transactional(readOnly = true)
+    public PageResponse<ProductDetail> findProductsByBrand(String brandId, Pageable pageable) {
+
+        pageable = capPageSize(pageable);
+
+
+        Specification<Product> spec = Specification
+                .where(ProductSpecs.hasStatus(Product.Status.ACTIVE))
+                .and(ProductSpecs.hasAnyBrand(brandId));
 
         Page<Product> page = productRepository.findAll(spec, pageable);
 

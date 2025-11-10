@@ -184,7 +184,7 @@ public class PostService implements IProductPostService {
                 throw new AppException(ErrorCode.IMAGE_TOO_LARGE);
             }
             String ct = image.getContentType() == null ? "" : image.getContentType();
-            if (!(ct.equals("image/jpeg") || ct.equals("image/png"))) {
+            if (!ct.startsWith("image/")) {
                 throw new AppException(ErrorCode.UNSUPPORTED_IMAGE_TYPE);
             }
         }

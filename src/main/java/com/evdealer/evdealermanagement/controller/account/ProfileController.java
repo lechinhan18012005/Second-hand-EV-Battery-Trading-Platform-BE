@@ -5,29 +5,13 @@ import com.evdealer.evdealermanagement.dto.account.profile.AccountUpdateRequest;
 import com.evdealer.evdealermanagement.dto.account.profile.ProfilePublicDto;
 import com.evdealer.evdealermanagement.service.implement.ProfileService;
 import com.evdealer.evdealermanagement.utils.JsonValidationUtils;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-
-import jakarta.validation.ConstraintViolation;
-import jakarta.validation.Valid;
-import jakarta.validation.Validator;
 import lombok.RequiredArgsConstructor;
-import org.springframework.core.MethodParameter;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
-import org.springframework.validation.BeanPropertyBindingResult;
-import org.springframework.validation.FieldError;
-import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-
-import java.io.IOException;
-import java.lang.reflect.Method;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
 
 @RestController
 @RequestMapping("/profile")

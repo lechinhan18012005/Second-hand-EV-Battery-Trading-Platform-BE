@@ -76,4 +76,16 @@ public class ProductFilterController {
         PageResponse<ProductDetail> response = productService.filterProducts(name, brand, type, city, district, minPrice, maxPrice, yearFrom, yearTo, pageable);
         return ResponseEntity.ok(response);
     }
+
+
+    @GetMapping("/brand")
+    public ResponseEntity<PageResponse<ProductDetail>> findProductsByBrand(
+
+            @RequestParam(required = false) String brand,
+            @PageableDefault(page = 0, size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
+
+    ) {
+        PageResponse<ProductDetail> response = productService.findProductsByBrand(brand, pageable);
+        return ResponseEntity.ok(response);
+    }
 }
