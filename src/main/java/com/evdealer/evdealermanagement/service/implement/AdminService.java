@@ -23,7 +23,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Objects;
 
 @Slf4j
 @Service
@@ -45,19 +48,9 @@ public class AdminService {
         log.debug("Fetching products with pageable: page={}, size={}, sort={}",
                 pageable.getPageNumber(), pageable.getPageSize(), pageable.getSort());
 
-<<<<<<< Updated upstream
         Page<Product> page = productRepository.findAll(pageable);
 
         return PageResponse.fromPage(page, ProductMapper::toDetailDto);
-=======
-            List<ProductDetail> sortedList = new ArrayList<>(list);
-            sortedList.sort(Comparator.comparing(ProductDetail::getUpdatedAt));
-            return sortedList;
-        } catch (Exception e) {
-            log.error("Error fetching all products", e);
-            return List.of();
-        }
->>>>>>> Stashed changes
     }
 
     public PageResponse<Account> getMemberAccounts(Pageable pageable) {
@@ -178,5 +171,4 @@ public class AdminService {
         accountRepository.delete(target);
         log.info("Account {} deleted successfully by admin {}", target.getUsername(), adminUsername);
     }
-
 }
