@@ -194,7 +194,7 @@ public class PaymentService {
             } else {
                 log.info("Payment failed - Updating to FAILED");
                 payment.setPaymentStatus(PostPayment.PaymentStatus.FAILED);
-                product.setStatus(Product.Status.DRAFT);
+                product.setStatus(Product.Status.PENDING_PAYMENT);
             }
         } else {
             log.warn(" Product is not in PENDING_PAYMENT status: {}", product.getStatus());
@@ -283,4 +283,65 @@ public class PaymentService {
 
         return vnpayResponse;
     }
+
+    @Transactional
+    public PackageResponse retryPackagePayment(String paymentId) {
+        log.info("Retrying payment for ID: {}", paymentId);
+
+        PostPayment payment = postPaymentRepository.findById(paymentId)
+                .orElseThrow(() -> new AppException(ErrorCode.PAYMENT_NOT_FOUND));
+
+        Product product = payment.getProduct();
+
+        if(product.getStatus() != Product.Status.PENDING_PAYMENT) {
+            log.warn("Payment {} is not PENDING, cannot retry", paymentId);
+            throw new AppException(ErrorCode.PRODUCT_NOT_PENDING_PAYMENT);
+        }
+
+        if(payment.getPaymentStatus() == PostPayment.PaymentStatus.COMPLETED) {
+            throw new AppException(ErrorCode.PAYMENT_ALREADY_COMPLETED);
+        }
+
+        PostPayment.PaymentMethod paymentMethod = payment.getPaymentMethod();
+        if (paymentMethod == null) {
+            throw new AppException(ErrorCode.PAYMENT_METHOD_MISSING);
+        }
+        long amount =  payment.getAmount().setScale(0, RoundingMode.HALF_UP).longValue();
+
+        String paymentUrl;
+        switch (paymentMethod) {
+            case MOMO -> {
+                MomoResponse momoResponse = momoService.createPaymentRequest(
+                        new MomoRequest(payment.getId(), String.valueOf(amount))
+                );
+                paymentUrl = momoResponse.getPayUrl();
+                log.info("New Momo payment URL generated {}", paymentUrl);
+            }
+            case VNPAY -> {
+                if(amount < 10000) {
+                    throw new AppException(ErrorCode.INVALID_PAYMENT_METHOD);
+                }
+                VnpayResponse vnpayResponse = vnpayService.createPayment(
+                        new VnpayRequest(payment.getId(), String.valueOf(amount))
+                );
+                paymentUrl = vnpayResponse.getPaymentUrl();
+                log.info("New Vnpay payment URL generated {}", paymentUrl);
+            }
+            default -> throw new AppException(ErrorCode.PAYMENT_METHOD_UNSUPPORTED);
+        }
+        payment.setPaymentStatus(PostPayment.PaymentStatus.PENDING);
+        payment.setCreatedAt(VietNamDatetime.nowVietNam());
+        postPaymentRepository.save(payment);
+
+        log.info("Payment {} set to PENDING and saved successfully.", paymentId);
+
+        return PackageResponse.builder()
+                .productId(product.getId())
+                .status(product.getStatus())
+                .totalPayable(payment.getAmount())
+                .currency("VND")
+                .paymentUrl(paymentUrl)
+                .build();
+    }
+
 }

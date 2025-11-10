@@ -1,6 +1,7 @@
 package com.evdealer.evdealermanagement.controller.member;
 
 import com.evdealer.evdealermanagement.dto.account.custom.CustomAccountDetails;
+import com.evdealer.evdealermanagement.dto.battery.update.BatteryUpdateProductRequest;
 import com.evdealer.evdealermanagement.dto.common.PageResponse;
 import com.evdealer.evdealermanagement.dto.post.battery.BatteryPostRequest;
 import com.evdealer.evdealermanagement.dto.post.battery.BatteryPostResponse;
@@ -9,6 +10,7 @@ import com.evdealer.evdealermanagement.dto.post.vehicle.VehiclePostResponse;
 import com.evdealer.evdealermanagement.dto.product.detail.ProductDetail;
 import com.evdealer.evdealermanagement.dto.product.status.ProductStatusRequest;
 import com.evdealer.evdealermanagement.dto.product.status.ProductStatusResponse;
+import com.evdealer.evdealermanagement.dto.vehicle.update.VehicleUpdateProductRequest;
 import com.evdealer.evdealermanagement.entity.product.Product;
 import com.evdealer.evdealermanagement.service.implement.BatteryService;
 import com.evdealer.evdealermanagement.service.implement.MemberService;
@@ -84,11 +86,11 @@ public class MemberProductController {
             @RequestPart(value = "images", required = false) List<MultipartFile> images,
             @RequestPart(value = "imagesMeta", required = false) String imagesMetaJson,
             @AuthenticationPrincipal CustomAccountDetails user) throws Exception {
-        BatteryPostRequest request = null;
+        BatteryUpdateProductRequest request = null;
         if (dataJson != null && !dataJson.isBlank()) {
             request = JsonValidationUtils.parseAndValidateJson(
                     dataJson,
-                    BatteryPostRequest.class,
+                    BatteryUpdateProductRequest.class,
                     this,
                     "updateBattery",
                     String.class,          // @PathVariable String productId
@@ -109,12 +111,12 @@ public class MemberProductController {
             @RequestPart(value = "images", required = false) List<MultipartFile> images,
             @RequestPart(value = "imagesMeta", required = false) String imagesMetaJson,
             @AuthenticationPrincipal CustomAccountDetails user) throws Exception {
-        VehiclePostRequest request = null;
+        VehicleUpdateProductRequest request = null;
 
         if (dataJson != null && !dataJson.isBlank()) {
             request = JsonValidationUtils.parseAndValidateJson(
                     dataJson,
-                    VehiclePostRequest.class,
+                    VehicleUpdateProductRequest.class,
                     this,
                     "updateVehicle",
                     String.class,               // productId

@@ -3,6 +3,7 @@ package com.evdealer.evdealermanagement.mapper.battery;
 import com.evdealer.evdealermanagement.dto.battery.BatteryDetailsDto;
 import com.evdealer.evdealermanagement.dto.battery.brand.BatteryBrandsResponse;
 import com.evdealer.evdealermanagement.dto.battery.detail.BatteryDetailResponse;
+import com.evdealer.evdealermanagement.dto.battery.update.BatteryUpdateProductRequest;
 import com.evdealer.evdealermanagement.dto.post.battery.BatteryPostRequest;
 import com.evdealer.evdealermanagement.dto.post.battery.BatteryPostResponse;
 import com.evdealer.evdealermanagement.dto.post.common.ProductImageResponse;
@@ -77,7 +78,7 @@ public class BatteryDetailsMapper {
 
     public static BatteryPostResponse toBatteryPostResponse(Product product,
                                                             BatteryDetails details,
-                                                            BatteryPostRequest request,
+                                                            BatteryUpdateProductRequest request,
                                                             List<ProductImageResponse> uploadedImages) {
         if (product == null || details == null) return null;
 

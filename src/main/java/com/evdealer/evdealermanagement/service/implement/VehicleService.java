@@ -17,10 +17,7 @@ import com.evdealer.evdealermanagement.dto.vehicle.model.VehicleModelRequest;
 import com.evdealer.evdealermanagement.dto.vehicle.model.VehicleModelResponse;
 import com.evdealer.evdealermanagement.dto.vehicle.model.VehicleModelVersionRequest;
 import com.evdealer.evdealermanagement.dto.vehicle.model.VehicleModelVersionResponse;
-import com.evdealer.evdealermanagement.dto.vehicle.update.UpdateModelRequest;
-import com.evdealer.evdealermanagement.dto.vehicle.update.UpdateVehicleModelResponse;
-import com.evdealer.evdealermanagement.dto.vehicle.update.UpdateVehicleVersionResponse;
-import com.evdealer.evdealermanagement.dto.vehicle.update.UpdateVersionRequest;
+import com.evdealer.evdealermanagement.dto.vehicle.update.*;
 import com.evdealer.evdealermanagement.entity.product.Product;
 import com.evdealer.evdealermanagement.entity.product.ProductImages;
 import com.evdealer.evdealermanagement.entity.vehicle.*;
@@ -424,7 +421,7 @@ public class VehicleService {
     }
 
     @Transactional
-    public VehiclePostResponse updateVehiclePost(String productId, VehiclePostRequest request,
+    public VehiclePostResponse updateVehiclePost(String productId, VehicleUpdateProductRequest request,
             List<MultipartFile> images, String imagesMetaJson) {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new AppException(ErrorCode.PRODUCT_NOT_FOUND));
@@ -472,7 +469,19 @@ public class VehicleService {
 
         if (images != null && !images.isEmpty()) {
 
-            // xóa ảnh cũ trong database
+            List<ProductImages> oldImages = productImagesRepository.findByProduct(product);
+
+            for (ProductImages img : oldImages) {
+                try {
+                    if (img.getPublicId() != null) {
+                        cloudinary.uploader().destroy(img.getPublicId(), ObjectUtils.emptyMap());
+                        log.info("Deleted old image from Cloudinary: {}", img.getPublicId());
+                    }
+                } catch (Exception e) {
+                    log.warn("Failed to delete image {}: {}", img.getPublicId(), e.getMessage());
+                }
+            }
+
             productImagesRepository.deleteAllByProduct(product);
             productImagesRepository.flush();
 
