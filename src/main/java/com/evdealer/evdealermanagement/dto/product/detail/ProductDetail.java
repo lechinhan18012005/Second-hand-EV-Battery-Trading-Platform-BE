@@ -52,6 +52,7 @@ public class ProductDetail {
     private String modelName;
     private String version;
     private String batteryType;
+    private String rejectReason;
 
     private Boolean isHot;
 
@@ -133,6 +134,7 @@ public class ProductDetail {
                 .version(version)
                 .brandName(brandName)
                 .batteryType(batteryType)
+                .rejectReason(product.getRejectReason())
                 .isHot(product.getIsHot() != null ? product.getIsHot() : false)
                 .sellerAvatarUrl(
                         product.getSeller() != null && product.getSeller().getAvatarUrl() != null
