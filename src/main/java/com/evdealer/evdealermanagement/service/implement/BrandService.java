@@ -168,7 +168,7 @@ public class BrandService {
         return false;
     }
 
-    public PageResponse<BrandItemResponse> listAllBrands(Pageable pageable) {
+    public PageResponse<BrandItemResponse> listAllBrandsPageable(Pageable pageable) {
         List<BrandItemResponse> all = new ArrayList<>();
 
         all.addAll(vehicleRepo.findAll().stream()

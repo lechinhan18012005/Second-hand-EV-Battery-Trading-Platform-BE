@@ -1,6 +1,10 @@
 package com.evdealer.evdealermanagement.controller.admin;
 
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+
 import com.evdealer.evdealermanagement.dto.battery.brand.BatteryBrandsResponse;
+import com.evdealer.evdealermanagement.dto.common.PageResponse;
 import com.evdealer.evdealermanagement.dto.product.detail.ProductDetail;
 import com.evdealer.evdealermanagement.dto.battery.brand.BatteryBrandsRequest;
 import com.evdealer.evdealermanagement.dto.vehicle.brand.VehicleBrandsRequest;
@@ -14,6 +18,8 @@ import com.evdealer.evdealermanagement.service.implement.VehicleService;
 import jakarta.validation.Valid;
 
 import lombok.extern.slf4j.Slf4j;
+
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -41,9 +47,11 @@ public class AdminProductManagementController {
 
     @GetMapping("/all")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<List<ProductDetail>> getAllProducts() {
-        List<ProductDetail> products = adminService.getAllProducts();
-        return ResponseEntity.ok().body(products);
+    public ResponseEntity<PageResponse<ProductDetail>> getAllProducts(
+            @PageableDefault(page = 0, size = 12, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+
+        PageResponse<ProductDetail> products = adminService.getAllProducts(pageable);
+        return ResponseEntity.ok(products);
     }
 
     @GetMapping("/all-posting-fee")
