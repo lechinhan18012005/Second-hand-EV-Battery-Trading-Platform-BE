@@ -63,7 +63,7 @@ public class ProductSearchController {
                                                                          @RequestParam(required = false) BigDecimal maxPrice,
                                                                          @RequestParam(required = false) Integer yearFrom,
                                                                          @RequestParam(required = false) Integer yearTo,
-                                                                         @PageableDefault(page = 0, size = 20, sort = {"isHot", "createdAt"}, direction = Sort.Direction.DESC) Pageable pageable) {
+                                                                         @PageableDefault(page = 0, size = 20, sort = {"isHot", "updatedAt"}, direction = Sort.Direction.DESC) Pageable pageable) {
         try {
             if (name == null || name.trim().isEmpty()) {
                 log.warn("Invalid name parameter");

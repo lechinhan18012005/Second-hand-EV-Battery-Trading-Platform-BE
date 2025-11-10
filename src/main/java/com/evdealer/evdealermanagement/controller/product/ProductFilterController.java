@@ -70,7 +70,7 @@ public class ProductFilterController {
             @RequestParam(required = false) String name,
             @RequestParam(required = false) String brand,
             @RequestParam(required = false) String type,
-            @PageableDefault(page = 0, size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
+            @PageableDefault(page = 0, size = 20, sort = "updatedAt", direction = Sort.Direction.DESC) Pageable pageable
 
     ) {
         PageResponse<ProductDetail> response = productService.filterProducts(name, brand, type, city, district, minPrice, maxPrice, yearFrom, yearTo, pageable);
@@ -82,7 +82,7 @@ public class ProductFilterController {
     public ResponseEntity<PageResponse<ProductDetail>> findProductsByBrand(
 
             @RequestParam(required = false) String brand,
-            @PageableDefault(page = 0, size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
+            @PageableDefault(page = 0, size = 20, sort = "updatedAt", direction = Sort.Direction.DESC) Pageable pageable
 
     ) {
         PageResponse<ProductDetail> response = productService.findProductsByBrand(brand, pageable);
