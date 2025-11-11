@@ -313,13 +313,13 @@ public class EversignService {
                             timestamp = Long.parseLong(String.valueOf(completedTimeObj));
                         }
 
-                        LocalDateTime signedTime = LocalDateTime.ofInstant(
-                                Instant.ofEpochSecond(timestamp),
-                                VIETNAM_ZONE
-                        );
+                        // ✅ Convert từ UTC → giờ Việt Nam (Asia/Ho_Chi_Minh)
+                        Instant utcInstant = Instant.ofEpochSecond(timestamp);
+                        LocalDateTime signedTimeVn = LocalDateTime.ofInstant(utcInstant, VIETNAM_ZONE);
 
-                        log.info("✅ [Eversign] Lấy được thời gian ký: {} (timestamp: {})", signedTime, timestamp);
-                        return signedTime;
+                        log.info("✅ [Eversign] completed_time UTC={} → VN={}", utcInstant, signedTimeVn);
+
+                        return signedTimeVn;
 
                     } catch (NumberFormatException e) {
                         log.warn("⚠️ Không thể parse completed_time: {}", completedTimeObj);
