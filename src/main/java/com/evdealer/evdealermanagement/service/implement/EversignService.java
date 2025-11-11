@@ -199,7 +199,7 @@ public class EversignService {
             contract.setTitle("Hợp đồng mua bán - " + request.getProduct().getTitle());
             contract.setPdfUrl(finalDocUrl);
             contract.setSignerEmail(request.getBuyer().getEmail());
-            contract.setSignedAt(VietNamDatetime.nowVietNam()); // Chính xác, chưa ký nên để null
+            contract.setSignedAt(null);
 
             contractDocumentRepository.save(contract);
             log.info("✅ [DB] Đã lưu ContractDocument thành công với URL: {}", finalDocUrl);
@@ -289,16 +289,18 @@ public class EversignService {
 
             // ✅ Lưu (hoặc cập nhật nếu đã tồn tại)
             ContractDocument contract = contractDocumentRepository.findByDocumentId(documentHash)
-                    .orElse(new ContractDocument());
-
-            contract.setDocumentId(documentHash);
-            contract.setPurchaseRequest(request);
-            contract.setTitle("Hợp đồng mua bán - " + request.getProduct().getTitle());
+                    .orElseGet(() -> {
+                        log.warn("⚠️ ContractDocument chưa tồn tại, tạo mới (không nên xảy ra)");
+                        ContractDocument newContract = new ContractDocument();
+                        newContract.setDocumentId(documentHash);
+                        newContract.setPurchaseRequest(request);
+                        newContract.setTitle("Hợp đồng mua bán - " + request.getProduct().getTitle());
+                        newContract.setSignerEmail(request.getBuyer().getEmail());
+                        return newContract;
+                    });
+            // ✅ Cập nhật thông tin khi hoàn tất
             contract.setPdfUrl(finalDocUrl);
-            contract.setSignerEmail(request.getBuyer().getEmail());
             contract.setSignedAt(VietNamDatetime.nowVietNam());
-
-            contractDocumentRepository.save(contract);
 
             log.info("✅ [DB] Đã lưu ContractDocument thành công với URL Eversign: {}", finalDocUrl);
 
