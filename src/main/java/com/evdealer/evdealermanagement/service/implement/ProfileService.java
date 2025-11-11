@@ -4,17 +4,23 @@ import com.cloudinary.Cloudinary;
 import com.evdealer.evdealermanagement.dto.account.profile.AccountProfileResponse;
 import com.evdealer.evdealermanagement.dto.account.profile.AccountUpdateRequest;
 import com.evdealer.evdealermanagement.dto.account.profile.ProfilePublicDto;
+import com.evdealer.evdealermanagement.dto.product.detail.ProductDetail;
 import com.evdealer.evdealermanagement.entity.account.Account;
+import com.evdealer.evdealermanagement.entity.product.Product;
 import com.evdealer.evdealermanagement.exceptions.AppException;
 import com.evdealer.evdealermanagement.exceptions.ErrorCode;
 import com.evdealer.evdealermanagement.mapper.account.AccountMapper;
 import com.evdealer.evdealermanagement.repository.AccountRepository;
+import com.evdealer.evdealermanagement.repository.ProductRepository;
 import com.evdealer.evdealermanagement.service.contract.IAccountService;
 
 import java.time.LocalDate;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 import com.evdealer.evdealermanagement.utils.VietNamDatetime;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -32,8 +38,8 @@ public class ProfileService implements IAccountService {
 
     private final AccountRepository accountRepository;
     private final Cloudinary cloudinary;
+    private final ProductRepository productRepository;
 
-    @Override
     public AccountProfileResponse getProfile(String username) {
         Account account = accountRepository.findByUsername(username)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
@@ -144,28 +150,90 @@ public class ProfileService implements IAccountService {
         }
     }
 
-    public ProfilePublicDto getPublicProfile(String username) {
-        Account account = accountRepository.findByUsername(username)
+    @Transactional
+    public ProfilePublicDto getPublicProfile(String sellerId) {
+        Account account = accountRepository.findById(sellerId)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
 
-        if (account != null) {
-            return ProfilePublicDto.builder()
-                    .id(account.getId())
-                    .email(account.getEmail())
-                    .phone(account.getPhone())
-                    .fullName(account.getFullName())
-                    .address(account.getAddress())
-                    .dateOfBirth(account.getDateOfBirth())
-                    .gender(account.getGender())
-                    .taxCode(account.getTaxCode())
-                    .nationalId(account.getNationalId())
-                    .createdAt(LocalDate.from(account.getCreatedAt()))
-                    .updatedAt(LocalDate.from(account.getUpdatedAt()))
-                    .avatarUrl(account.getAvatarUrl())
-                    .status(account.getStatus())
-                    .role(account.getRole())
-                    .build();
+        return ProfilePublicDto.builder()
+                .id(account.getId())
+                .email(account.getEmail())
+                .phone(account.getPhone())
+                .fullName(account.getFullName())
+                .address(account.getAddress())
+                .dateOfBirth(account.getDateOfBirth())
+                .gender(account.getGender())
+                .taxCode(account.getTaxCode())
+                .nationalId(account.getNationalId())
+                .createdAt(LocalDate.from(account.getCreatedAt()))
+                .updatedAt(LocalDate.from(account.getUpdatedAt()))
+                .avatarUrl(account.getAvatarUrl())
+                .status(account.getStatus())
+                .role(account.getRole())
+                .build();
+    }
+
+    @Transactional
+    public List<ProductDetail> getActiveProductsOfSeller(String sellerId) {
+        log.info("Getting active products for sellerId: {}", sellerId);
+
+        try {
+            // Validate seller exists
+            if (!accountRepository.existsById(sellerId)) {
+                throw new AppException(ErrorCode.USER_NOT_FOUND, "User not found");
+            }
+
+            List<Product> activeProducts = productRepository.findBySellerAndStatus(sellerId, Product.Status.ACTIVE);
+
+            if (activeProducts == null || activeProducts.isEmpty()) {
+                log.info("No active products found for sellerId: {}", sellerId);
+                return Collections.emptyList();
+            }
+
+            List<ProductDetail> result = activeProducts.stream()
+                    .map(ProductDetail::fromEntity)
+                    .toList();
+
+            log.info("Found {} active products for sellerId: {}", result.size(), sellerId);
+            return result;
+
+        } catch (AppException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Error getting active products for sellerId {}: {}", sellerId, e.getMessage(), e);
+            throw new AppException(ErrorCode.BAD_REQUEST, "Failed to get active products");
         }
-        return null;
+    }
+
+    @Transactional
+    public List<ProductDetail> getSoldProductsOfSeller(String sellerId) {
+        log.info("Getting sold products for sellerId: {}", sellerId);
+
+        try {
+            // Validate seller exists
+            if (!accountRepository.existsById(sellerId)) {
+                throw new AppException(ErrorCode.USER_NOT_FOUND, "User not found");
+            }
+
+            List<Product> soldProducts = productRepository.findBySellerAndStatus(sellerId, Product.Status.SOLD);
+
+            if (soldProducts == null || soldProducts.isEmpty()) {
+                log.info("No sold products found for sellerId: {}", sellerId);
+                return Collections.emptyList();
+            }
+
+            List<ProductDetail> result = soldProducts.stream()
+                    .map(ProductDetail::fromEntity)
+                    .toList();
+
+            log.info("Found {} sold products for sellerId: {}", result.size(), sellerId);
+            return result;
+
+        } catch (AppException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Error getting sold products for sellerId {}: {}", sellerId, e.getMessage(), e);
+            throw new AppException(ErrorCode.BAD_REQUEST, "Failed to get sold products");
+        }
     }
 }
