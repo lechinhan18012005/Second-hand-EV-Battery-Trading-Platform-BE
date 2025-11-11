@@ -68,7 +68,7 @@ public final class ProductSpecs {
             // coalesce(vBrand.id, bBrand.id) = :brandId
             return cb.equal(
                     cb.coalesce(vehicleBrand.get("id"), batteryBrand.get("id")),
-                    brandId.trim()
+                    brandId.trim() // coalesce giúp lấy ra cái ko null
             );
         };
     }
