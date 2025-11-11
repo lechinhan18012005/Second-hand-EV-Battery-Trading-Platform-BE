@@ -25,6 +25,8 @@ import org.springframework.web.client.RestTemplate;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 
 @Service
@@ -312,7 +314,7 @@ public class EversignService {
                     }
 
                     Instant utcInstant = Instant.ofEpochSecond(timestamp);
-                    LocalDateTime signedTimeVn = LocalDateTime.ofInstant(utcInstant, VIETNAM_ZONE);
+                    LocalDateTime signedTimeVn = LocalDateTime.ofInstant(utcInstant.plus(7, ChronoUnit.HOURS), ZoneOffset.UTC);
 
                     log.info("✅ [Eversign] UTC={} → VN={} (timestamp={})", utcInstant, signedTimeVn, timestamp);
                     return signedTimeVn;
