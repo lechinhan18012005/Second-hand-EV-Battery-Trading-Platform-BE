@@ -314,7 +314,12 @@ public class EversignService {
                     }
 
                     Instant utcInstant = Instant.ofEpochSecond(timestamp);
-                    LocalDateTime signedTimeVn = LocalDateTime.ofInstant(utcInstant.plus(7, ChronoUnit.HOURS), ZoneOffset.UTC);
+
+                    // Cộng thêm 7 tiếng thực tế vào Instant UTC
+                    Instant vnInstant = utcInstant.plus(7, ChronoUnit.HOURS);
+
+                    // Chuyển thành LocalDateTime (không kèm timezone)
+                    LocalDateTime signedTimeVn = LocalDateTime.ofInstant(vnInstant, ZoneOffset.UTC);
 
                     log.info("✅ [Eversign] UTC={} → VN={} (timestamp={})", utcInstant, signedTimeVn, timestamp);
                     return signedTimeVn;
