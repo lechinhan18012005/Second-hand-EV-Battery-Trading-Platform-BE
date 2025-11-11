@@ -24,4 +24,5 @@ public class ProductRenewalResponse {
     String currency;
     String paymentUrl;
     LocalDateTime updatedAt;
+    LocalDateTime startRenewalAt;
 }

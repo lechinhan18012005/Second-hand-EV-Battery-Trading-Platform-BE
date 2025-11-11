@@ -25,7 +25,8 @@ public class ProductRenewalMapper {
                 .totalPayable(totalPayable)
                 .currency("VND")
                 .paymentUrl(paymentUrl)
-                .updatedAt(VietNamDatetime.nowVietNam())
+                .updatedAt(product.getUpdatedAt())
+                .startRenewalAt(product.getStartRenewalAt())
                 .build();
     }
 }

@@ -100,6 +100,9 @@ public class Product extends BaseEntity {
     @Column(name = "featured_end_at")
     private LocalDateTime featuredEndAt;
 
+    @Column(name = "start_renewal_at")
+    private LocalDateTime startRenewalAt;
+
     @OneToOne(mappedBy = "product", cascade = CascadeType.ALL)
     private VehicleDetails vehicleDetails;
 

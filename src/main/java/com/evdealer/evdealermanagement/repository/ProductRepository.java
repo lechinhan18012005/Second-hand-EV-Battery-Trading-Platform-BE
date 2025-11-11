@@ -92,4 +92,7 @@ public interface ProductRepository extends JpaRepository<Product, String>, JpaSp
 
   Page<Product> findBySeller_IdAndStatusIn(String sellerId, List<Product.Status> statuses, Pageable pageable);
 
+  @Query("SELECT p FROM Product p WHERE p.startRenewalAt IS NOT NULL AND p.startRenewalAt <= :now")
+  List<Product> findByStartRenewalAtBeforeAndStartRenewalAtNotNull(@Param("now") LocalDateTime now);
+
 }
