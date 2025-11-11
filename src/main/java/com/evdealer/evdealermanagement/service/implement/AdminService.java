@@ -35,9 +35,6 @@ public class AdminService {
 
     @Autowired
     public ProductRepository productRepository;
-
-    private final PostPaymentRepository postPaymentRepository;
-
     @Autowired
     public AccountRepository accountRepository;
     @Autowired

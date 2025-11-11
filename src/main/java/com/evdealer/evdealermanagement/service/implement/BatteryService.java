@@ -9,7 +9,6 @@ import com.evdealer.evdealermanagement.dto.battery.detail.BatteryDetailResponse;
 import com.evdealer.evdealermanagement.dto.battery.type.BatteryTypeResponse;
 import com.evdealer.evdealermanagement.dto.battery.type.CreateBatteryTypeRequest;
 import com.evdealer.evdealermanagement.dto.battery.update.BatteryUpdateProductRequest;
-import com.evdealer.evdealermanagement.dto.post.battery.BatteryPostRequest;
 import com.evdealer.evdealermanagement.dto.post.battery.BatteryPostResponse;
 import com.evdealer.evdealermanagement.dto.post.common.ProductImageResponse;
 import com.evdealer.evdealermanagement.dto.product.similar.SimilarProductResponse;

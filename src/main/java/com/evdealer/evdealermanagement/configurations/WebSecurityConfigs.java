@@ -42,6 +42,7 @@ public class WebSecurityConfigs {
                 "http://localhost:4173",
                 "http://127.0.0.1:5500",
                 "https://eco-green-p80o.onrender.com",
+                "https://eco-green.store/",
                 "api-eco-green-be.huanops.com", "https://d3k8h5w5waqdh2.cloudfront.net"));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         config.setAllowedHeaders(List.of("*"));
@@ -52,7 +53,6 @@ public class WebSecurityConfigs {
         source.registerCorsConfiguration("/**", config);
         return source;
     }
-
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -69,15 +69,15 @@ public class WebSecurityConfigs {
                                 "/vehicle/**", "/battery/**",
                                 "/product/**", "/gemini/**",
                                 "/api/password/**",
-                                "/profile/public/**",  // 👈 phải đặt ở đây, TRƯỚC /profile/**
+                                "/profile/public/**", // 👈 phải đặt ở đây, TRƯỚC /profile/**
                                 "/api/vnpayment/**",
                                 "/api/momo/**",
                                 "/api/webhooks/eversign/document-complete",
                                 "/member/product/seller/**",
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
-                                "/public/brands/**"
-                        ).permitAll()
+                                "/public/brands/**")
+                        .permitAll()
 
                         // Các endpoint yêu cầu role
                         .requestMatchers("/admin/**").hasRole("ADMIN")
