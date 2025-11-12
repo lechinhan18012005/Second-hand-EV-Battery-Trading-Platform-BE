@@ -285,16 +285,16 @@ public class PaymentService {
     }
 
     @Transactional
-    public PackageResponse retryPackagePayment(String paymentId) {
-        log.info("Retrying payment for ID: {}", paymentId);
+    public PackageResponse retryPackagePayment(String productId) {
+        log.info("Retrying payment for product ID: {}", productId);
 
-        PostPayment payment = postPaymentRepository.findById(paymentId)
+        PostPayment payment = postPaymentRepository.findLatestUncompletedByProductId(productId)
                 .orElseThrow(() -> new AppException(ErrorCode.PAYMENT_NOT_FOUND));
 
         Product product = payment.getProduct();
 
         if(product.getStatus() != Product.Status.PENDING_PAYMENT) {
-            log.warn("Payment {} is not PENDING, cannot retry", paymentId);
+            log.warn("Product {} is not PENDING_PAYMENT, cannot retry", productId);
             throw new AppException(ErrorCode.PRODUCT_NOT_PENDING_PAYMENT);
         }
 
@@ -333,7 +333,7 @@ public class PaymentService {
         payment.setCreatedAt(VietNamDatetime.nowVietNam());
         postPaymentRepository.save(payment);
 
-        log.info("Payment {} set to PENDING and saved successfully.", paymentId);
+        log.info("Payment {} set to PENDING and saved successfully.", payment.getId());
 
         return PackageResponse.builder()
                 .productId(product.getId())

@@ -34,8 +34,8 @@ public class PostPackageController {
         return paymentService.getAllPackages();
     }
 
-    @PostMapping("/retry/{paymentId}")
-    public ResponseEntity<PackageResponse> retryPayment(@PathVariable String paymentId) {
-        return ResponseEntity.ok(paymentService.retryPackagePayment(paymentId));
+    @PostMapping("/retry/{productId}")
+    public ResponseEntity<PackageResponse> retryPayment(@PathVariable String productId) {
+        return ResponseEntity.ok(paymentService.retryPackagePayment(productId));
     }
 }
