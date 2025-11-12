@@ -76,6 +76,7 @@ public class WebSecurityConfigs {
                                 "/member/product/seller/**",
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
+                                "/seller-reviews/seller/**",
                                 "/public/brands/**")
                         .permitAll()
 
