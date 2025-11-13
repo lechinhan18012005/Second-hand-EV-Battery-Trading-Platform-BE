@@ -52,6 +52,7 @@ public class PurchaseRequestController {
     // -----------------------------
     @GetMapping("/respond/email")
     public ResponseEntity<?> respondFromEmail(
+            @RequestParam(required = false) String reason,
             @RequestParam String requestId,
             @RequestParam boolean accept) {
 
@@ -62,11 +63,16 @@ public class PurchaseRequestController {
         dto.setRequestId(requestId);
         dto.setAccept(accept);
 
-        String defaultMessage = accept
-                ? "Đồng ý bán sản phẩm. Vui lòng xem và ký hợp đồng."
-                : "Xin lỗi, hiện tại tôi chưa thể bán sản phẩm này.";
-        dto.setResponseMessage(defaultMessage);
-        dto.setRejectReason(defaultMessage);
+        if(accept) {
+            dto.setResponseMessage("Đồng ý bán sản phẩm. Vui lòng xem và ký hợp đồng.");
+            dto.setRejectReason(null);
+        } else {
+            String defaultMessage = (reason != null && !reason.isBlank())
+                    ? reason
+                    : "Xin lỗi, hiện tại tôi chưa thể bán sản phẩm này.";
+            dto.setResponseMessage(defaultMessage);
+            dto.setRejectReason(defaultMessage);
+        }
 
         try {
             PurchaseRequestResponse response = purchaseRequestService.respondToPurchaseRequest(dto);
