@@ -21,6 +21,8 @@ import com.evdealer.evdealermanagement.utils.JsonValidationUtils;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 
 import lombok.RequiredArgsConstructor;
@@ -165,4 +167,13 @@ public class MemberProductController {
         return ResponseEntity.ok(vehicleService.getVehiclePostById(productId));
     }
 
+    @GetMapping("/bought-products")
+    public ResponseEntity<Page<ProductDetail>> getBoughtProducts(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<ProductDetail> result = memberService.getBoughtProduct(pageable);
+        return ResponseEntity.ok(result);
+    }
 }
