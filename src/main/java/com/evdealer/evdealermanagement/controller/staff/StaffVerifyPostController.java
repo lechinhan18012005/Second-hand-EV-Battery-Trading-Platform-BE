@@ -44,7 +44,7 @@ public class StaffVerifyPostController {
     @GetMapping("/pending/review")
     @PreAuthorize("hasAnyRole('STAFF', 'ADMIN')")
     public PageResponse<PostVerifyResponse> listPendingPosts(
-            @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+            @PageableDefault(size = 10, sort = "updatedAt", direction = Sort.Direction.DESC) Pageable pageable) {
         return staffService.listPendingPosts(pageable);
     }
 
@@ -52,7 +52,7 @@ public class StaffVerifyPostController {
     @PreAuthorize("hasAnyRole('STAFF', 'ADMIN')")
     public PageResponse<PostVerifyResponse> listPendingPostsByType(
             @RequestParam(name = "type", required = false) Product.ProductType type,
-            @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+            @PageableDefault(size = 10, sort = "updatedAt", direction = Sort.Direction.DESC) Pageable pageable) {
         return staffService.listPendingPostsByType(type, pageable);
     }
 
