@@ -444,7 +444,6 @@ public class VehicleService {
             product.setManufactureYear(request.getYear());
             product.setUpdatedAt(VietNamDatetime.nowVietNam());
 
-            details.setProduct(product);
             details.setBrand(vehicleBrandsRepository.findById(request.getBrandId())
                     .orElseThrow(() -> new AppException(ErrorCode.BRAND_NOT_FOUND)));
             details.setCategory(vehicleCategoryRepository.findById(request.getCategoryId())
@@ -494,12 +493,100 @@ public class VehicleService {
                             .product(product)
                             .imageUrl(dto.getUrl())
                             .isPrimary(dto.isPrimary())
+                            .position(dto.getPosition())
+                            .build())
+                    .collect(Collectors.toList());
+
+            product.getImages().addAll(newImages);
+        }
+        vehicleDetailsRepository.save(details);
+        productRepository.save(product);
+
+        return VehicleMapper.toVehiclePostResponse(product, details, request, imageDtos);
+    }
+
+    @Transactional
+    public VehiclePostResponse updateVehiclePostRejected(String productId, VehicleUpdateProductRequest request,
+                                                 List<MultipartFile> images, String imagesMetaJson) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new AppException(ErrorCode.PRODUCT_NOT_FOUND));
+
+        if (product.getStatus() != Product.Status.REJECTED) {
+            throw new AppException(ErrorCode.PRODUCT_NOT_REJECTED);
+        }
+
+        VehicleDetails details = vehicleDetailsRepository.findByProductId(product.getId())
+                .orElseThrow(() -> new AppException(ErrorCode.VEHICLE_NOT_FOUND));
+
+        if (request != null) {
+            product.setTitle(request.getTitle());
+            product.setDescription(request.getDescription());
+            product.setPrice(request.getPrice());
+            product.setCity(request.getCity());
+            product.setDistrict(request.getDistrict());
+            product.setWard(request.getWard());
+            product.setAddressDetail(request.getAddressDetail());
+            product.setManufactureYear(request.getYear());
+            product.setUpdatedAt(VietNamDatetime.nowVietNam());
+
+            details.setBrand(vehicleBrandsRepository.findById(request.getBrandId())
+                    .orElseThrow(() -> new AppException(ErrorCode.BRAND_NOT_FOUND)));
+            details.setCategory(vehicleCategoryRepository.findById(request.getCategoryId())
+                    .orElseThrow(() -> new AppException(ErrorCode.CATEGORY_NOT_FOUND)));
+            details.setModel(vmRepository.findById(request.getModelId())
+                    .orElseThrow(() -> new AppException(ErrorCode.MODEL_NOT_FOUND)));
+            details.setVersion(vmvRepository.findById(request.getVersionId())
+                    .orElseThrow(() -> new AppException(ErrorCode.VERSION_NOT_FOUND)));
+            details.setMileageKm(request.getMileageKm());
+            details.setBatteryHealthPercent(request.getBatteryHealthPercent());
+
+            vehicleDetailsRepository.save(details);
+        }
+
+        if (images != null) {
+            images = images.stream()
+                    .filter(file -> file != null && !file.isEmpty())
+                    .toList();
+        }
+
+        List<ProductImageResponse> imageDtos = null;
+
+        if (images != null && !images.isEmpty()) {
+
+            List<ProductImages> oldImages = productImagesRepository.findByProduct(product);
+
+            for (ProductImages img : oldImages) {
+                try {
+                    if (img.getPublicId() != null) {
+                        cloudinary.uploader().destroy(img.getPublicId(), ObjectUtils.emptyMap());
+                        log.info("Deleted old image from Cloudinary: {}", img.getPublicId());
+                    }
+                } catch (Exception e) {
+                    log.warn("Failed to delete image {}: {}", img.getPublicId(), e.getMessage());
+                }
+            }
+
+            productImagesRepository.deleteAllByProduct(product);
+            productImagesRepository.flush();
+
+            imageDtos = postService.uploadAndSaveImages(product, images, imagesMetaJson);
+
+            product.getImages().clear();
+
+            List<ProductImages> newImages = imageDtos.stream()
+                    .map(dto -> ProductImages.builder()
+                            .product(product)
+                            .imageUrl(dto.getUrl())
+                            .isPrimary(dto.isPrimary())
+                            .position(dto.getPosition())
                             .build())
                     .collect(Collectors.toList());
 
             product.getImages().addAll(newImages);
         }
 
+        product.setStatus(Product.Status.PENDING_REVIEW);
+        vehicleDetailsRepository.save(details);
         productRepository.save(product);
 
         return VehicleMapper.toVehiclePostResponse(product, details, request, imageDtos);

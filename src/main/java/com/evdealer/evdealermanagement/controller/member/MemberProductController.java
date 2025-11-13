@@ -106,6 +106,31 @@ public class MemberProductController {
         return batteryService.updateBatteryPost(productId, request, images, imagesMetaJson);
     }
 
+    @PutMapping(value = "/battery/update/{productId}/rejected", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasRole('MEMBER')")
+    public BatteryPostResponse updateBatteryRejected(
+            @PathVariable String productId,
+            @RequestPart(value = "data", required = false) String dataJson,
+            @RequestPart(value = "images", required = false) List<MultipartFile> images,
+            @RequestPart(value = "imagesMeta", required = false) String imagesMetaJson,
+            @AuthenticationPrincipal CustomAccountDetails user) throws Exception {
+        BatteryUpdateProductRequest request = null;
+        if (dataJson != null && !dataJson.isBlank()) {
+            request = JsonValidationUtils.parseAndValidateJson(
+                    dataJson,
+                    BatteryUpdateProductRequest.class,
+                    this,
+                    "updateBattery",
+                    String.class, // @PathVariable String productId
+                    String.class, // @RequestPart("data")
+                    List.class, // @RequestPart("images")
+                    String.class, // @RequestPart("imagesMeta")
+                    CustomAccountDetails.class // @AuthenticationPrincipal
+            );
+        }
+        return batteryService.updateBatteryPostRejected(productId, request, images, imagesMetaJson);
+    }
+
     @PutMapping(value = "/vehicle/update/{productId}/draft", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasRole('MEMBER')")
     public VehiclePostResponse updateVehicle(
@@ -130,6 +155,32 @@ public class MemberProductController {
             );
         }
         return vehicleService.updateVehiclePost(productId, request, images, imagesMetaJson);
+    }
+
+    @PutMapping(value = "/vehicle/update/{productId}/rejected", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasRole('MEMBER')")
+    public VehiclePostResponse updateVehicleRejected(
+            @PathVariable("productId") String productId,
+            @RequestPart(value = "data", required = false) String dataJson,
+            @RequestPart(value = "images", required = false) List<MultipartFile> images,
+            @RequestPart(value = "imagesMeta", required = false) String imagesMetaJson,
+            @AuthenticationPrincipal CustomAccountDetails user) throws Exception {
+        VehicleUpdateProductRequest request = null;
+
+        if (dataJson != null && !dataJson.isBlank()) {
+            request = JsonValidationUtils.parseAndValidateJson(
+                    dataJson,
+                    VehicleUpdateProductRequest.class,
+                    this,
+                    "updateVehicle",
+                    String.class, // productId
+                    String.class, // data
+                    List.class, // images
+                    String.class, // imagesMeta
+                    CustomAccountDetails.class // user
+            );
+        }
+        return vehicleService.updateVehiclePostRejected(productId, request, images, imagesMetaJson);
     }
 
     @GetMapping("/seller/{sellerId}/products")

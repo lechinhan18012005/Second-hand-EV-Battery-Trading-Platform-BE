@@ -268,7 +268,6 @@ public class BatteryService {
             product.setAddressDetail(request.getAddressDetail());
             product.setUpdatedAt(VietNamDatetime.nowVietNam());
 
-            details.setProduct(product);
             details.setBrand(batteryBrandsRepository.findById(request.getBrandId())
                     .orElseThrow(() -> new AppException(ErrorCode.BRAND_NOT_FOUND)));
             details.setBatteryType(batteryTypesRepository.findById(request.getBatteryTypeId())
@@ -315,10 +314,95 @@ public class BatteryService {
                             .product(product)
                             .imageUrl(dto.getUrl())
                             .isPrimary(dto.isPrimary())
+                            .position(dto.getPosition())
                             .build())
                     .collect(Collectors.toList());
             product.getImages().addAll(newImages);
         }
+
+        productRepository.save(product);
+        batteryDetailRepository.save(details);
+
+        return BatteryDetailsMapper.toBatteryPostResponse(product, details, request, imageDtos);
+    }
+
+    @Transactional
+    public BatteryPostResponse updateBatteryPostRejected(String productId, BatteryUpdateProductRequest request,
+                                                 List<MultipartFile> images, String imagesMetaJson) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new AppException(ErrorCode.PRODUCT_NOT_FOUND));
+
+        if (product.getStatus() != Product.Status.REJECTED) {
+            throw new AppException(ErrorCode.PRODUCT_NOT_REJECTED);
+        }
+
+        BatteryDetails details = batteryDetailRepository.findByProductId(product.getId());
+        if (details == null) {
+            throw new AppException(ErrorCode.BATTERY_NOT_FOUND);
+        }
+
+        if (request != null) {
+            product.setTitle(request.getTitle());
+            product.setDescription(request.getDescription());
+            product.setPrice(request.getPrice());
+            product.setCity(request.getCity());
+            product.setDistrict(request.getDistrict());
+            product.setWard(request.getWard());
+            product.setAddressDetail(request.getAddressDetail());
+            product.setUpdatedAt(VietNamDatetime.nowVietNam());
+
+            details.setBrand(batteryBrandsRepository.findById(request.getBrandId())
+                    .orElseThrow(() -> new AppException(ErrorCode.BRAND_NOT_FOUND)));
+            details.setBatteryType(batteryTypesRepository.findById(request.getBatteryTypeId())
+                    .orElseThrow(() -> new AppException(ErrorCode.TYPE_NOT_FOUND)));
+            details.setCapacityKwh(request.getCapacityKwh());
+            details.setVoltageV(request.getVoltageV());
+            details.setHealthPercent(request.getHealthPercent());
+
+            batteryDetailRepository.save(details);
+        }
+
+        if (images != null) {
+            images = images.stream()
+                    .filter(file -> file != null && !file.isEmpty())
+                    .toList();
+        }
+
+        List<ProductImageResponse> imageDtos = null;
+
+        if (images != null && !images.isEmpty()) {
+
+            List<ProductImages> oldImages = productImagesRepository.findByProduct(product);
+
+            for (ProductImages img : oldImages) {
+                try {
+                    if (img.getPublicId() != null) {
+                        cloudinary.uploader().destroy(img.getPublicId(), ObjectUtils.emptyMap());
+                        log.info("Deleted old image from Cloudinary: {}", img.getPublicId());
+                    }
+                } catch (Exception e) {
+                    log.warn("Failed to delete image {}: {}", img.getPublicId(), e.getMessage());
+                }
+            }
+
+            productImagesRepository.deleteAllByProduct(product);
+            productImagesRepository.flush();
+
+            imageDtos = postService.uploadAndSaveImages(product, images, imagesMetaJson);
+
+            product.getImages().clear();
+
+            List<ProductImages> newImages = imageDtos.stream()
+                    .map(dto -> ProductImages.builder()
+                            .product(product)
+                            .imageUrl(dto.getUrl())
+                            .isPrimary(dto.isPrimary())
+                            .position(dto.getPosition())
+                            .build())
+                    .collect(Collectors.toList());
+            product.getImages().addAll(newImages);
+        }
+        product.setStatus(Product.Status.PENDING_REVIEW);
 
         productRepository.save(product);
         batteryDetailRepository.save(details);

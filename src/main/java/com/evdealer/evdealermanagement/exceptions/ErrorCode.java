@@ -95,6 +95,7 @@ public enum ErrorCode {
     PAYMENT_METHOD_MISSING(1013, "Payment method is missing", HttpStatus.BAD_REQUEST),
     INVALID_PAYMENT_METHOD(1014, "Payment method is invalid", HttpStatus.BAD_REQUEST),
     PAYMENT_METHOD_UNSUPPORTED(1015, "Payment method is not supported", HttpStatus.BAD_REQUEST),
+    PRODUCT_NOT_REJECTED(1016, "Product is not rejected", HttpStatus.BAD_REQUEST),
 
     // --- Wishlist Errors (Codes 1600 - 1699) ---
     WISHLIST_NOT_FOUND(1601, "Wishlist not found", HttpStatus.NOT_FOUND),
