@@ -28,7 +28,6 @@ public class StaffProductManagementController {
 
     @GetMapping("/by-status")
     @PreAuthorize("hasRole('ADMIN') or hasRole('STAFF')")
-    @Transactional(readOnly = true)
     public ResponseEntity<PageResponse<PostVerifyResponse>> getAllProductsWithStatus(@RequestParam String status,
             @PageableDefault(page = 0, size = 12, sort = "updatedAt", direction = Sort.Direction.DESC) Pageable pageable) {
         try {

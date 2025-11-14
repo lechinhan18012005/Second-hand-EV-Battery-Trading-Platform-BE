@@ -53,7 +53,7 @@ public class PostVerifyMapper {
 
         Integer postDays = null;
 
-        if (payment.getPostPackage() != null) {
+        if (payment != null && payment.getPostPackage() != null) {
             Integer base = payment.getPostPackage().getBaseDurationDays();
             postDays = (base != null) ? base : 30;
         }
@@ -69,15 +69,6 @@ public class PostVerifyMapper {
                                     : null)
                     .postDays(postDays);
         }
-
-        log.info("DEBUG payment: id={}, hasOption={}, hasPackage={}, baseDurationDays={}",
-                payment.getId(),
-                payment.getPostPackageOption() != null,
-                payment.getPostPackage() != null,
-                payment.getPostPackage() != null
-                        ? payment.getPostPackage().getBaseDurationDays()
-                        : null);
-
         // ========== Type-specific fields ==========
         switch (product.getType()) {
             case VEHICLE -> {
