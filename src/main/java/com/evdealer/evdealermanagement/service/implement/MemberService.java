@@ -36,6 +36,7 @@ public class MemberService {
     private final EmailService emailService;
     private final PurchaseRequestRepository purchaseRequestRepository;
     private final UserContextService userContextService;
+    private final SellerReviewService sellerReviewService;
 
 
     /**
@@ -113,8 +114,12 @@ public class MemberService {
 
         Page<PurchaseRequest> completedPurchase = purchaseRequestRepository.findCompletedByBuyerId(buyerId, pageable);
 
-        return completedPurchase.map(request ->
-                ProductMapper.toDetailDto(request.getProduct())
-        );
+        return completedPurchase.map(request -> {
+            Product product = request.getProduct();
+            ProductDetail dto = ProductMapper.toDetailDto(product);
+            boolean reviewed = sellerReviewService.hasReview(buyerId, product.getId());
+            dto.setHasReivew(reviewed);
+            return dto;
+        });
     }
 }

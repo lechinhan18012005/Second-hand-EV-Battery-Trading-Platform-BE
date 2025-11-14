@@ -18,4 +18,6 @@ public interface SellerReviewRepository extends JpaRepository<SellerReview, Stri
     Double getAverageRatingBySeller(String sellerId);
 
     long countBySeller_Id(String sellerId);
+
+    boolean existsByBuyer_IdAndProduct_Id(String reviewerId, String productId);
 }

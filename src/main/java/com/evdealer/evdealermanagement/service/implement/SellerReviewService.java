@@ -222,4 +222,9 @@ public class SellerReviewService {
                         return 0;
                 }
         }
+
+        @Transactional(readOnly = true)
+        public boolean hasReview(String buyerId, String productId) {
+                return sellerReviewRepository.existsByBuyer_IdAndProduct_Id(buyerId, productId);
+        }
 }
