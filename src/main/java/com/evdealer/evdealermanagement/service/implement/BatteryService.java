@@ -244,10 +244,14 @@ public class BatteryService {
     }
 
     @Transactional
-    public BatteryPostResponse updateBatteryPost(String productId, BatteryUpdateProductRequest request,
+    public BatteryPostResponse updateBatteryPost(String currentUserId, String productId, BatteryUpdateProductRequest request,
             List<MultipartFile> images, String imagesMetaJson) {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new AppException(ErrorCode.PRODUCT_NOT_FOUND));
+
+        if(!product.getSeller().getId().equals(currentUserId)){
+            throw new AppException(ErrorCode.NOT_CURRENT_USER);
+        }
 
         if (product.getStatus() != Product.Status.DRAFT) {
             throw new AppException(ErrorCode.PRODUCT_NOT_DRAFT);
@@ -327,10 +331,14 @@ public class BatteryService {
     }
 
     @Transactional
-    public BatteryPostResponse updateBatteryPostRejected(String productId, BatteryUpdateProductRequest request,
+    public BatteryPostResponse updateBatteryPostRejected(String currentUserId, String productId, BatteryUpdateProductRequest request,
                                                  List<MultipartFile> images, String imagesMetaJson) {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new AppException(ErrorCode.PRODUCT_NOT_FOUND));
+
+        if(!product.getSeller().getId().equals(currentUserId)){
+            throw new AppException(ErrorCode.NOT_CURRENT_USER);
+        }
 
         if (product.getStatus() != Product.Status.REJECTED) {
             throw new AppException(ErrorCode.PRODUCT_NOT_REJECTED);

@@ -421,13 +421,17 @@ public class VehicleService {
     }
 
     @Transactional
-    public VehiclePostResponse updateVehiclePost(String productId, VehicleUpdateProductRequest request,
+    public VehiclePostResponse updateVehiclePost(String currentUserId, String productId, VehicleUpdateProductRequest request,
             List<MultipartFile> images, String imagesMetaJson) {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new AppException(ErrorCode.PRODUCT_NOT_FOUND));
 
         if (product.getStatus() != Product.Status.DRAFT) {
             throw new AppException(ErrorCode.PRODUCT_NOT_DRAFT);
+        }
+
+        if(!product.getSeller().getId().equals(currentUserId)){
+            throw new AppException(ErrorCode.NOT_CURRENT_USER);
         }
 
         VehicleDetails details = vehicleDetailsRepository.findByProductId(product.getId())
@@ -506,10 +510,14 @@ public class VehicleService {
     }
 
     @Transactional
-    public VehiclePostResponse updateVehiclePostRejected(String productId, VehicleUpdateProductRequest request,
+    public VehiclePostResponse updateVehiclePostRejected(String currentUserId, String productId, VehicleUpdateProductRequest request,
                                                  List<MultipartFile> images, String imagesMetaJson) {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new AppException(ErrorCode.PRODUCT_NOT_FOUND));
+
+        if(!product.getSeller().getId().equals(currentUserId)){
+            throw new AppException(ErrorCode.NOT_CURRENT_USER);
+        }
 
         if (product.getStatus() != Product.Status.REJECTED) {
             throw new AppException(ErrorCode.PRODUCT_NOT_REJECTED);

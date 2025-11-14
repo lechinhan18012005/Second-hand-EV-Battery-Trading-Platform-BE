@@ -21,6 +21,7 @@ public enum ErrorCode {
     USER_NOT_FOUND(4040, "User not found", HttpStatus.NOT_FOUND),
     PRODUCT_NOT_FOUND(4041, "Product not found", HttpStatus.NOT_FOUND),
     RESOURCE_NOT_FOUND(4042, "Requested resource not found", HttpStatus.NOT_FOUND),
+    NOT_CURRENT_USER(4043, "Not current user", HttpStatus.FORBIDDEN),
 
     INTERNAL_ERROR(500, "Internal server error", HttpStatus.INTERNAL_SERVER_ERROR),
     SERVICE_UNAVAILABLE(503, "Service temporarily unavailable", HttpStatus.SERVICE_UNAVAILABLE),

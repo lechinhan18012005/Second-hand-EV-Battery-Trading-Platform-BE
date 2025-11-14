@@ -103,7 +103,7 @@ public class MemberProductController {
                     CustomAccountDetails.class // @AuthenticationPrincipal
             );
         }
-        return batteryService.updateBatteryPost(productId, request, images, imagesMetaJson);
+        return batteryService.updateBatteryPost(user.getAccountId(), productId, request, images, imagesMetaJson);
     }
 
     @PutMapping(value = "/battery/update/{productId}/rejected", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -128,7 +128,7 @@ public class MemberProductController {
                     CustomAccountDetails.class // @AuthenticationPrincipal
             );
         }
-        return batteryService.updateBatteryPostRejected(productId, request, images, imagesMetaJson);
+        return batteryService.updateBatteryPostRejected(user.getAccountId(), productId, request, images, imagesMetaJson);
     }
 
     @PutMapping(value = "/vehicle/update/{productId}/draft", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -154,7 +154,7 @@ public class MemberProductController {
                     CustomAccountDetails.class // user
             );
         }
-        return vehicleService.updateVehiclePost(productId, request, images, imagesMetaJson);
+        return vehicleService.updateVehiclePost(user.getAccountId(), productId, request, images, imagesMetaJson);
     }
 
     @PutMapping(value = "/vehicle/update/{productId}/rejected", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -180,7 +180,7 @@ public class MemberProductController {
                     CustomAccountDetails.class // user
             );
         }
-        return vehicleService.updateVehiclePostRejected(productId, request, images, imagesMetaJson);
+        return vehicleService.updateVehiclePostRejected(user.getAccountId(), productId, request, images, imagesMetaJson);
     }
 
     @GetMapping("/seller/{sellerId}/products")
