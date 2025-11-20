@@ -77,6 +77,7 @@ public class PurchaseRequestService {
         request.setBuyerMessage(dto.getBuyerMessage());
         request.setStatus(PurchaseRequest.RequestStatus.PENDING);
         request.setCreatedAt(LocalDateTime.now());
+        request.setHasPurchaseRequested(true);
 
         PurchaseRequest saved = purchaseRequestRepository.save(request);
 
@@ -309,6 +310,7 @@ public class PurchaseRequestService {
                 .rejectReason(request.getRejectReason())
                 .createdAt(request.getCreatedAt())
                 .respondedAt(request.getRespondedAt())
+                .hasPurchaseRequested(request.isHasPurchaseRequested())
                 .build();
     }
 }
