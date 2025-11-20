@@ -51,7 +51,7 @@ public class PurchaseRequestResponse {
     private LocalDateTime buyerSignedAt;
     private LocalDateTime sellerSignedAt;
 
-    private boolean isPurchaseRequested;
+    private boolean hasPurchaseRequested;
 
     public static PurchaseRequestResponse fromEntity(PurchaseRequest request) {
         if (request == null) return null;

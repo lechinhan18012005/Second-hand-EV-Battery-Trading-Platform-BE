@@ -22,6 +22,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -84,6 +85,9 @@ public class EversignService {
 
             Map<String, Object> requestBody = buildContractRequest(buyer, seller, product);
 
+            // ✅ Log request body để debug
+            log.info("📤 [Eversign] Request body: {}", requestBody);
+
             String url = String.format("%s/document?business_id=%s&access_key=%s",
                     EVERSIGN_API_BASE, businessId, apiKey);
 
@@ -91,18 +95,40 @@ public class EversignService {
             headers.setContentType(MediaType.APPLICATION_JSON);
 
             HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
-            ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.POST, entity, Map.class);
+
+            ResponseEntity<Map> response;
+            try {
+                response = restTemplate.exchange(url, HttpMethod.POST, entity, Map.class);
+            } catch (Exception apiError) {
+                // ✅ Log chi tiết lỗi từ API
+                log.error("❌ [Eversign] API call failed: {}", apiError.getMessage());
+                if (apiError instanceof org.springframework.web.client.HttpClientErrorException) {
+                    org.springframework.web.client.HttpClientErrorException httpError =
+                            (org.springframework.web.client.HttpClientErrorException) apiError;
+                    log.error("❌ [Eversign] Status: {}", httpError.getStatusCode());
+                    log.error("❌ [Eversign] Response body: {}", httpError.getResponseBodyAsString());
+                }
+                throw new AppException(ErrorCode.CONTRACT_BUILD_FAILED);
+            }
 
             log.info("📬 [Eversign] Response status: {}", response.getStatusCode());
-            log.debug("📥 [Eversign] Full response: {}", response.getBody());
+            log.info("📥 [Eversign] Full response: {}", response.getBody());
 
             if (response.getStatusCode() != HttpStatus.OK || response.getBody() == null) {
                 throw new AppException(ErrorCode.CONTRACT_BUILD_FAILED);
             }
 
             Map<String, Object> body = response.getBody();
+
+            // ✅ Kiểm tra có error từ Eversign không
+            if (body.containsKey("error")) {
+                log.error("❌ [Eversign] API returned error: {}", body.get("error"));
+                throw new AppException(ErrorCode.CONTRACT_BUILD_FAILED);
+            }
+
             String documentHash = (String) body.get("document_hash");
             if (documentHash == null) {
+                log.error("❌ [Eversign] No document_hash in response: {}", body);
                 throw new AppException(ErrorCode.CONTRACT_BUILD_FAILED);
             }
 
@@ -133,8 +159,10 @@ public class EversignService {
                     .status("PENDING")
                     .build();
 
+        } catch (AppException e) {
+            throw e;
         } catch (Exception e) {
-            log.error("🔥 [Eversign] Lỗi khi tạo hợp đồng trống: {}", e.getMessage(), e);
+            log.error("🔥 [Eversign] Lỗi khi tạo hợp đồng: {}", e.getMessage(), e);
             throw new RuntimeException("Lỗi khi tạo hợp đồng với Eversign: " + e.getMessage());
         }
     }
@@ -167,8 +195,46 @@ public class EversignService {
                 "signing_order", 2));
         body.put("signers", signers);
 
+        List<Map<String, Object>> fields = new ArrayList<>();
+        // Thông tin Buyer
+        fields.add(createField("buyer_name", buyer.getFullName()));
+        fields.add(createField("buyer_phone", buyer.getPhone() != null ? buyer.getPhone() : ""));
+        fields.add(createField("buyer_address", buyer.getAddress() != null ? buyer.getAddress() : ""));
+
+        // Thông tin Seller
+        fields.add(createField("seller_name", seller.getFullName()));
+        fields.add(createField("seller_phone", seller.getPhone() != null ? seller.getPhone() : ""));
+        fields.add(createField("seller_address", seller.getAddress() != null ? seller.getAddress() : ""));
+
+        // Thông tin Product
+        fields.add(createField("product_name", product.getTitle() != null ? product.getTitle() : ""));
+        fields.add(createField("product_type", product.getType() != null ? product.getType().toString() : ""));
+        fields.add(createField("product_manufacturer_year",
+                product.getManufactureYear() != null ? product.getManufactureYear().toString() : ""));
+        fields.add(createField("product_price",
+                product.getPrice() != null ? formatPrice(product.getPrice()) : ""));
+        fields.add(createField("product_brand",
+                Product.ProductType.VEHICLE == product.getType()? product.getVehicleDetails().getBrand().getName() : product.getBatteryDetails().getBrand().getName()));
+        fields.add(createField("place", "Ho Chi Minh"));
+        fields.add(createField("day", String.valueOf(VietNamDatetime.nowVietNam().getDayOfMonth())));
+        fields.add(createField("month", String.valueOf(VietNamDatetime.nowVietNam().getMonthValue())));
+        fields.add(createField("year", String.valueOf(VietNamDatetime.nowVietNam().getYear())));
+        body.put("fields", fields);
+
         log.debug("🧰 [Eversign] Request body (sandbox={}): {}", sandboxMode, body);
         return body;
+    }
+
+    private String formatPrice(BigDecimal price) {
+        return String.format("%,.0f VNĐ", price);
+    }
+
+
+    private Map<String, Object> createField (String identifier, String value) {
+        Map<String, Object> field = new HashMap<>();
+        field.put("identifier", identifier);
+        field.put("value", value != null ? value : "");
+        return field;
     }
 
     private String buildContractViewUrl(String documentHash) {
@@ -289,6 +355,9 @@ public class EversignService {
     /**
      * ✅ Lấy thời gian ký thực tế từ Eversign API
      */
+    /**
+     * ✅ Lấy thời gian ký thực tế từ Eversign API
+     */
     private LocalDateTime fetchActualSignedTimeFromEversign(String documentHash) {
         try {
             String url = String.format(
@@ -304,7 +373,6 @@ public class EversignService {
                 // ✅ Eversign trả về "completed_time" (Unix timestamp)
                 Object completedTimeObj = doc.get("completed_time");
 
-
                 if (completedTimeObj != null) {
                     long timestamp = Long.parseLong(String.valueOf(completedTimeObj));
 
@@ -313,15 +381,12 @@ public class EversignService {
                         timestamp = timestamp / 1000;
                     }
 
+                    // ✅ FIX: Chuyển UTC timestamp thành LocalDateTime theo timezone Việt Nam
                     Instant utcInstant = Instant.ofEpochSecond(timestamp);
+                    LocalDateTime signedTimeVn = LocalDateTime.ofInstant(utcInstant, ZoneOffset.UTC );
 
-                    // Cộng thêm 7 tiếng thực tế vào Instant UTC
-                    Instant vnInstant = utcInstant.plus(7, ChronoUnit.HOURS);
-
-                    // Chuyển thành LocalDateTime (không kèm timezone)
-                    LocalDateTime signedTimeVn = LocalDateTime.ofInstant(vnInstant, ZoneOffset.UTC);
-
-                    log.info("✅ [Eversign] UTC={} → VN={} (timestamp={})", utcInstant, signedTimeVn, timestamp);
+                    log.info("✅ [Eversign] UTC Instant={} → VN LocalDateTime={} (timestamp={})",
+                            utcInstant, signedTimeVn, timestamp);
                     return signedTimeVn;
                 }
                 else {

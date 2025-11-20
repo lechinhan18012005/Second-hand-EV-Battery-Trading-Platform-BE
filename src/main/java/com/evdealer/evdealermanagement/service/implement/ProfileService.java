@@ -19,6 +19,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import com.evdealer.evdealermanagement.utils.Utils;
 import com.evdealer.evdealermanagement.utils.VietNamDatetime;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -49,6 +50,13 @@ public class ProfileService implements IAccountService {
     @Override
     public AccountProfileResponse updateProfile(String username, AccountUpdateRequest accountRequest,
             MultipartFile avatarUrl) {
+
+        if(StringUtils.hasText(accountRequest.getEmail())) {
+            if(!Utils.isValidEmail(accountRequest.getEmail())) {
+                throw new AppException(ErrorCode.INVALID_EMAIL);
+            }
+        }
+
         Account existingAccount = accountRepository.findByUsername(username)
                 .orElseThrow(() -> {
                     log.warn("User not found by username='{}'", username);

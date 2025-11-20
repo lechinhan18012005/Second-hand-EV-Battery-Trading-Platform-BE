@@ -4,8 +4,11 @@ import com.evdealer.evdealermanagement.dto.account.custom.CustomAccountDetails;
 import com.evdealer.evdealermanagement.dto.account.login.AccountLoginResponse;
 import com.evdealer.evdealermanagement.entity.account.Account;
 import com.evdealer.evdealermanagement.entity.account.AuthProvider;
+import com.evdealer.evdealermanagement.exceptions.AppException;
+import com.evdealer.evdealermanagement.exceptions.ErrorCode;
 import com.evdealer.evdealermanagement.repository.AccountRepository;
 import com.evdealer.evdealermanagement.repository.AuthProviderRepository;
+import com.evdealer.evdealermanagement.utils.Utils;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
@@ -42,6 +45,10 @@ public class FacebookLoginService {
         // Nếu email null -> fallback bằng id
         if (email == null) {
             email = providerId + "@facebook.com";
+        }
+
+        if(!Utils.isValidEmail(email)) {
+            throw new AppException(ErrorCode.INVALID_EMAIL);
         }
 
         // Nếu name null thì để trống
