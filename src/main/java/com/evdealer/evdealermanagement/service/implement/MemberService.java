@@ -118,7 +118,7 @@ public class MemberService {
             Product product = request.getProduct();
             ProductDetail dto = ProductMapper.toDetailDto(product);
             boolean reviewed = sellerReviewService.hasReview(buyerId, product.getId());
-            dto.setHasReivew(reviewed);
+            dto.setHasReview(reviewed);
             return dto;
         });
     }

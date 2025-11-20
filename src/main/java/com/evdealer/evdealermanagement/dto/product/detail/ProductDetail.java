@@ -60,7 +60,7 @@ public class ProductDetail {
 
     private String sellerAvatarUrl;
 
-    private Boolean hasReivew;
+    private Boolean hasReview;
 
     public static ProductDetail fromEntity(Product product) {
         if (product == null)
