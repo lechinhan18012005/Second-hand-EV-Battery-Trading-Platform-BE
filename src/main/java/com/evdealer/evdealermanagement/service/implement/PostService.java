@@ -9,6 +9,7 @@ import com.evdealer.evdealermanagement.dto.post.common.ProductImageResponse;
 import com.evdealer.evdealermanagement.dto.post.vehicle.VehiclePostRequest;
 import com.evdealer.evdealermanagement.dto.post.vehicle.VehiclePostResponse;
 import com.evdealer.evdealermanagement.dto.vehicle.catalog.VehicleCatalogDTO;
+import com.evdealer.evdealermanagement.entity.account.Account;
 import com.evdealer.evdealermanagement.entity.battery.BatteryDetails;
 import com.evdealer.evdealermanagement.entity.product.Product;
 import com.evdealer.evdealermanagement.entity.product.ProductImages;
@@ -66,6 +67,20 @@ public class PostService implements IProductPostService {
             List<MultipartFile> images, String imagesMetaJson) {
         validateImages(images);
 
+        // 1. Lấy account 1 lần và xử lý lỗi nếu không tồn tại
+        Account account = accountRepository.findById(sellerId)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+
+        // 2. Check phone & email
+        boolean missingPhone = (account.getPhone() == null || account.getPhone().isBlank());
+        boolean missingEmail = (account.getEmail() == null || account.getEmail().isBlank());
+
+        if (missingPhone) {
+            throw new AppException(ErrorCode.PHONE_REQUIRED);
+        } else if (missingEmail) {
+            throw new AppException(ErrorCode.EMAIL_REQUIRED);
+        }
+
         Product product = productRepository.save(Product.builder()
                 .seller(accountRepository.findById(sellerId)
                         .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND)))
@@ -119,6 +134,21 @@ public class PostService implements IProductPostService {
     @Override
     public VehiclePostResponse createVehiclePost(String sellerId, VehiclePostRequest request,
             List<MultipartFile> images, String imagesMetaJson) {
+
+        // 1. Lấy account 1 lần và xử lý lỗi nếu không tồn tại
+        Account account = accountRepository.findById(sellerId)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+
+        // 2. Check phone & email
+        boolean missingPhone = (account.getPhone() == null || account.getPhone().isBlank());
+        boolean missingEmail = (account.getEmail() == null || account.getEmail().isBlank());
+
+        if (missingPhone) {
+            throw new AppException(ErrorCode.PHONE_REQUIRED);
+        } else if (missingEmail) {
+            throw new AppException(ErrorCode.EMAIL_REQUIRED);
+        }
+
         Product product = productRepository.save(Product.builder()
                 .seller(accountRepository.findById(sellerId)
                         .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND)))

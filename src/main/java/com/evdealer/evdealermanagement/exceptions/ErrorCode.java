@@ -150,6 +150,8 @@ public enum ErrorCode {
     // -APPROVAL (3100-3200)
     DATE_MUST_REQUIRED(3100, "Date is required", HttpStatus.BAD_REQUEST);
 
+
+
     private final int code;
     private final String message;
     private final HttpStatus httpStatus;
