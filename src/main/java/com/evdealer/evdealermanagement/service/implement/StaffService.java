@@ -16,6 +16,7 @@ import com.evdealer.evdealermanagement.mapper.post.PostVerifyMapper;
 import com.evdealer.evdealermanagement.mapper.staff.ApprovalRateMapper;
 import com.evdealer.evdealermanagement.repository.*;
 
+import com.evdealer.evdealermanagement.utils.VietNamDatetime;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.data.domain.Pageable;
@@ -109,11 +110,12 @@ public class StaffService {
         }
         log.debug("Elevated days from package option: {}", elevatedDays);
 
-        LocalDateTime now = nowVietNam();
-        product.setFeaturedEndAt(elevatedDays > 0 ? now.plusDays(elevatedDays) : null);
-        product.setExpiresAt(now.plusDays(30));
-        product.setUpdatedAt(now);
-        product.setCreatedAt(now);
+        LocalDateTime nowVN = VietNamDatetime.nowVietNam();
+        product.setCreatedAt(nowVN);
+        product.setUpdatedAt(nowVN);
+        product.setExpiresAt(nowVN.plusDays(30));
+        product.setFeaturedEndAt(elevatedDays > 0 ? nowVN.plusDays(elevatedDays) : null);
+
 
         // Thay đổi status và set approver
         product.setStatus(Product.Status.ACTIVE);
