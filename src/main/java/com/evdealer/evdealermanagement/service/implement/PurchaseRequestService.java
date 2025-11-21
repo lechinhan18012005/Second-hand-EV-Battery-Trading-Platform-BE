@@ -44,6 +44,11 @@ public class PurchaseRequestService {
                     "Bạn phải cập nhật địa chỉ email trước khi có thể gửi yêu cầu mua hàng.");
         }
 
+        if (buyer.getAddress() == null || buyer.getAddress().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Bạn phải cập nhật địa chỉ nơi ở trước khi có thể gửi yêu cầu mua hàng để làm hợp đồng điện tử.");
+        }
+
         Product product = productRepository.findById(dto.getProductId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Product not found"));
 
