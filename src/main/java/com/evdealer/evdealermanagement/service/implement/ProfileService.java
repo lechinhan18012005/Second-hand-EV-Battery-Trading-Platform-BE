@@ -128,6 +128,7 @@ public class ProfileService implements IAccountService {
             existingAccount.setAvatarUrl(avatar);
         }
 
+        existingAccount.setDateOfBirth(accountRequest.getDateOfBirth());
         existingAccount.setUpdatedAt(VietNamDatetime.nowVietNam());
         log.debug("Set updatedAt for accountId={}", existingAccount.getId());
 
