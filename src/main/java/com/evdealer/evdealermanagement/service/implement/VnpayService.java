@@ -55,6 +55,14 @@ public class VnpayService {
             String createDate = now.format(formatter);
             String expireDate = expireTime.format(formatter);
 
+            log.info("=== PAYMENT TIME DEBUG ===");
+            log.info("Vietnam Time: {}", now);
+            log.info("Server Time: {}", ZonedDateTime.now(ZoneId.systemDefault()));
+            log.info("Create Date: {}", createDate);
+            log.info("Expire Date: {}", expireDate);
+            log.info("Time Difference: {} hours", java.time.Duration.between(ZonedDateTime.now(ZoneId.systemDefault()), now).toHours());
+            log.info("==========================");
+
             Map<String, String> vnpParams = new TreeMap<>();
             vnpParams.put("vnp_Version", "2.1.0");
             vnpParams.put("vnp_Command", "pay");
