@@ -186,15 +186,19 @@ public class EversignService {
         body.put("signers", signers);
 
         List<Map<String, Object>> fields = new ArrayList<>();
-        // Thông tin Buyer
-        fields.add(createField("buyer_name", buyer.getFullName()));
-        fields.add(createField("buyer_phone", buyer.getPhone() != null ? buyer.getPhone() : ""));
-        fields.add(createField("buyer_address", buyer.getAddress() != null ? buyer.getAddress() : ""));
+        // ===== THÔNG TIN BUYER - CÓ THỂ EDIT =====
+        fields.add(createEditableTextField("buyer_name", buyer.getFullName(), "buyer"));
+        fields.add(createEditableTextField("buyer_phone",
+                buyer.getPhone() != null ? buyer.getPhone() : "", "buyer"));
+        fields.add(createEditableTextField("buyer_address",
+                buyer.getAddress() != null ? buyer.getAddress() : "", "buyer"));
 
-        // Thông tin Seller
-        fields.add(createField("seller_name", seller.getFullName()));
-        fields.add(createField("seller_phone", seller.getPhone() != null ? seller.getPhone() : ""));
-        fields.add(createField("seller_address", seller.getAddress() != null ? seller.getAddress() : ""));
+        // ===== THÔNG TIN SELLER - CÓ THỂ EDIT =====
+        fields.add(createEditableTextField("seller_name", seller.getFullName(), "seller"));
+        fields.add(createEditableTextField("seller_phone",
+                seller.getPhone() != null ? seller.getPhone() : "", "seller"));
+        fields.add(createEditableTextField("seller_address",
+                seller.getAddress() != null ? seller.getAddress() : "", "seller"));
 
         // Thông tin Product
         fields.add(createField("product_name", product.getTitle() != null ? product.getTitle() : ""));
@@ -224,6 +228,16 @@ public class EversignService {
         Map<String, Object> field = new HashMap<>();
         field.put("identifier", identifier);
         field.put("value", value != null ? value : "");
+        return field;
+    }
+
+    private Map<String, Object> createEditableTextField(String identifier, String value, String signerRole) {
+        Map<String, Object> field = new HashMap<>();
+        field.put("identifier", identifier);
+        field.put("value", value != null ? value : "");
+        field.put("type", "text");  // Loại field có thể edit
+        field.put("signer", signerRole);  // Chỉ định người ký nào có thể edit
+        field.put("required", true);  // Bắt buộc phải điền
         return field;
     }
 
