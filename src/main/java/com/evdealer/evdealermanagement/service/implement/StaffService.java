@@ -110,7 +110,13 @@ public class StaffService {
         }
         log.debug("Elevated days from package option: {}", elevatedDays);
 
-        LocalDateTime nowVN = VietNamDatetime.nowVietNam();
+        LocalDateTime nowVN = ZonedDateTime.now(VIETNAM_ZONE).toLocalDateTime();
+        log.info("=== DEBUG TIMEZONE ===");
+        log.info("VietNamDatetime.nowVietNam(): {}", nowVN);
+        log.info("ZonedDateTime.now(VIETNAM_ZONE): {}", ZonedDateTime.now(VIETNAM_ZONE).toLocalDateTime());
+        log.info("System default: {}", LocalDateTime.now());
+        log.info("System timezone: {}", ZoneId.systemDefault());
+        log.info("=====================");
         product.setCreatedAt(nowVN);
         product.setUpdatedAt(nowVN);
         product.setExpiresAt(nowVN.plusDays(30));
