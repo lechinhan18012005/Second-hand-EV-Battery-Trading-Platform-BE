@@ -17,10 +17,7 @@ import java.math.BigDecimal;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.text.SimpleDateFormat;
-import java.time.LocalDateTime;
-import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
+import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 
@@ -48,20 +45,16 @@ public class VnpayService {
                 throw new IllegalArgumentException("Số tiền không hợp lệ");
             }
 
-            // Tạo mã giao dịch duy nhất
             String transactionId = request.getId() != null ? request.getId() : UUID.randomUUID().toString();
 
-            // Thiết lập múi giờ VN
-            TimeZone tz = TimeZone.getTimeZone("Asia/Ho_Chi_Minh");
-            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMddHHmmss");
-            dateFormat.setTimeZone(tz);
+            ZoneId vietnamZone = ZoneId.of("Asia/Ho_Chi_Minh");
+            ZonedDateTime now = ZonedDateTime.now(vietnamZone);
+            ZonedDateTime expireTime = now.plusMinutes(15);
 
-            String createDate = dateFormat.format(new Date());
-            Calendar expireTime = Calendar.getInstance(tz);
-            expireTime.add(Calendar.MINUTE, 15);
-            String expireDate = dateFormat.format(expireTime.getTime());
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
+            String createDate = now.format(formatter);
+            String expireDate = expireTime.format(formatter);
 
-            // Các tham số gửi lên VNPay
             Map<String, String> vnpParams = new TreeMap<>();
             vnpParams.put("vnp_Version", "2.1.0");
             vnpParams.put("vnp_Command", "pay");
@@ -75,11 +68,8 @@ public class VnpayService {
             vnpParams.put("vnp_IpAddr", "127.0.0.1");
             vnpParams.put("vnp_CreateDate", createDate);
             vnpParams.put("vnp_ExpireDate", expireDate);
-
-            // FIX: Dùng returnUrl từ config thay vì hardcode
             vnpParams.put("vnp_ReturnUrl", vnpayProperties.getReturnUrl());
 
-            // Hash dữ liệu theo chuẩn VNPay
             String hashData = buildHashData(vnpParams);
             String secureHash = VnpayConfig.hmacSHA512(vnpayProperties.getSecretKey(), hashData);
 
@@ -96,7 +86,7 @@ public class VnpayService {
                     .build();
 
         } catch (Exception e) {
-            log.error("❌ Error creating payment", e);
+            log.error("Error creating payment", e);
             throw new RuntimeException("Không thể tạo thanh toán: " + e.getMessage());
         }
     }
@@ -136,7 +126,7 @@ public class VnpayService {
     public VnpayVerifyResponse verifyReturn(String productId, String rawQuery, String clientIp) {
         try {
             Map<String, String> params = parseRawQuery(rawQuery);
-            //Kiểm tra chữ kí
+
             if(!verifyPaymentSignature(params)) {
                 return VnpayVerifyResponse.builder()
                         .success(false).status("FAILED").message("Invalid signature")
@@ -144,9 +134,8 @@ public class VnpayService {
                         .vnpTransactionNo(params.get("vnp_TransactionNo"))
                         .vnpResponseCode(params.get("vnp_ResponseCode"))
                         .build();
-
             }
-            //kiểm tra TMN code
+
             if(!Objects.equals(params.get("vnp_TmnCode"), vnpayProperties.getTmnCode())) {
                 return VnpayVerifyResponse.builder()
                         .success(false).status("FAILED").message("Mismatched TMN code")
@@ -155,7 +144,7 @@ public class VnpayService {
                         .vnpResponseCode(params.get("vnp_ResponseCode"))
                         .build();
             }
-            // chuẩn hóa amount
+
             BigDecimal vnpAmount = new BigDecimal(params.getOrDefault("vnp_Amount", "0")).divide(BigDecimal.valueOf(100));
             BigDecimal expectedAmount = resolveExpectedAmountFor(productId);
             if(expectedAmount != null && expectedAmount.compareTo(vnpAmount) != 0) {
@@ -167,7 +156,7 @@ public class VnpayService {
                         .amount(vnpAmount)
                         .build();
             }
-            //kết quả trả về từ vnpay
+
             String response = params.get("vnp_ResponseCode");
             boolean ok = "00".equals(response);
 
@@ -183,7 +172,6 @@ public class VnpayService {
                     .payDate(parseVnpPayDate(params.get("vnp_PayDate")))
                     .build();
 
-
         } catch (Exception e) {
             log.error("VNPay verify error", e);
             throw new RuntimeException("VNPay verify error: " + e.getMessage(), e);
@@ -193,7 +181,7 @@ public class VnpayService {
     private OffsetDateTime parseVnpPayDate(String vnpPayDate) {
         try {
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
-            return OffsetDateTime.of(LocalDateTime.parse(vnpPayDate, formatter),ZoneOffset.ofHours(7));
+            return OffsetDateTime.of(LocalDateTime.parse(vnpPayDate, formatter), ZoneOffset.ofHours(7));
         } catch (Exception ignored) {
             return null;
         }
@@ -217,7 +205,6 @@ public class VnpayService {
         return paymentRepository.findFirstByProductIdAndPaymentStatusOrderByCreatedAtDesc(productId, PostPayment.PaymentStatus.PENDING).map(PostPayment::getAmount).orElse(null);
     }
 
-
     private String urlDecode(String s) {
         try {
             return URLDecoder.decode(s, StandardCharsets.UTF_8);
@@ -225,8 +212,6 @@ public class VnpayService {
             return s;
         }
     }
-
-
 
     private String buildHashData(Map<String, String> params) throws UnsupportedEncodingException {
         List<String> keys = new ArrayList<>(params.keySet());
