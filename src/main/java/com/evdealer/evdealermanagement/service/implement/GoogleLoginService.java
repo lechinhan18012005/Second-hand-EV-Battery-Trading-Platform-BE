@@ -33,7 +33,7 @@ public class GoogleLoginService {
     public AccountLoginResponse processGoogleLogin(OAuth2User u) throws Exception {
 
         log.info("Google Attributes: {}", u.getAttributes());
-        String sub = u.getAttribute("sub");
+        String sub = u.getAttribute("sub"); //ID duy nhất của Google (không đổi, dùng để nhận diện user này).
         String email = u.getAttribute("email");
         String finalEmail = email;
         String name = Optional.ofNullable(u.getAttribute("name")).orElseGet(() -> finalEmail != null ? finalEmail.split("@")[0] : "Google User").toString();
@@ -66,6 +66,7 @@ public class GoogleLoginService {
                 int i = 1;
                 while (accountRepo.existsByUsername(username)) {
                     username = usernameBase + "_" + i;
+                    i ++;
                 }
 
                 acc = Account.builder()

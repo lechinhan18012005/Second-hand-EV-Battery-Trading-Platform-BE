@@ -54,7 +54,6 @@ public class VehiclePostRequest {
     @PositiveOrZero(message = "Mileage must be 0 or greater")
     Integer mileageKm;
 
-    @NotBlank(message = "Please enter the vehicle model")
     String modelId;
 
     @NotNull(message = "Please enter the manufacturing year")
