@@ -166,7 +166,7 @@ public class EversignService {
         body.put("business_id", businessId);
         body.put("template_id", templateId);
         body.put("title", "Hợp đồng mua bán sản phẩm - ECO GREEN");
-        body.put("message", "Vui lòng điền thông tin và ký hợp đồng (sandbox).");
+        body.put("message", "Vui lòng điền thông tin và ký hợp đồng.");
         body.put("use_signer_order", 1);
         body.put("webhook_url", appBaseUrl + "/api/webhooks/eversign/document-complete");
         log.info("📡 Webhook URL gửi lên Eversign: {}", appBaseUrl + "/api/webhooks/eversign/document-complete");
@@ -186,6 +186,7 @@ public class EversignService {
         body.put("signers", signers);
 
         List<Map<String, Object>> fields = new ArrayList<>();
+
         // ===== THÔNG TIN BUYER - CÓ THỂ EDIT =====
         fields.add(createEditableTextField("buyer_name", buyer.getFullName(), "buyer"));
         fields.add(createEditableTextField("buyer_phone",
@@ -200,19 +201,29 @@ public class EversignService {
         fields.add(createEditableTextField("seller_address",
                 seller.getAddress() != null ? seller.getAddress() : "", "seller"));
 
-        // Thông tin Product
-        fields.add(createField("product_name", product.getTitle() != null ? product.getTitle() : ""));
-        fields.add(createField("product_type", product.getType() != null ? product.getType().toString() : ""));
-        fields.add(createField("product_manufacturer_year",
+        // ===== THÔNG TIN PRODUCT - CHỈ ĐỌC (KHÔNG CHO EDIT) =====
+        fields.add(createReadOnlyField("product_name",
+                product.getTitle() != null ? product.getTitle() : ""));
+        fields.add(createReadOnlyField("product_type",
+                product.getType() != null ? product.getType().toString() : ""));
+        fields.add(createReadOnlyField("product_manufacturer_year",
                 product.getManufactureYear() != null ? product.getManufactureYear().toString() : ""));
-        fields.add(createField("product_price",
+        fields.add(createReadOnlyField("product_price",
                 product.getPrice() != null ? formatPrice(product.getPrice()) : ""));
-        fields.add(createField("product_brand",
-                Product.ProductType.VEHICLE == product.getType()? product.getVehicleDetails().getBrand().getName() : product.getBatteryDetails().getBrand().getName()));
-        fields.add(createField("place", "Ho Chi Minh"));
-        fields.add(createField("day", String.valueOf(VietNamDatetime.nowVietNam().getDayOfMonth())));
-        fields.add(createField("month", String.valueOf(VietNamDatetime.nowVietNam().getMonthValue())));
-        fields.add(createField("year", String.valueOf(VietNamDatetime.nowVietNam().getYear())));
+        fields.add(createReadOnlyField("product_brand",
+                Product.ProductType.VEHICLE == product.getType() ?
+                        product.getVehicleDetails().getBrand().getName() :
+                        product.getBatteryDetails().getBrand().getName()));
+
+        // ===== THÔNG TIN NGÀY THÁNG - CHỈ ĐỌC =====
+        fields.add(createReadOnlyField("place", "Ho Chi Minh"));
+        fields.add(createReadOnlyField("day",
+                String.valueOf(VietNamDatetime.nowVietNam().getDayOfMonth())));
+        fields.add(createReadOnlyField("month",
+                String.valueOf(VietNamDatetime.nowVietNam().getMonthValue())));
+        fields.add(createReadOnlyField("year",
+                String.valueOf(VietNamDatetime.nowVietNam().getYear())));
+
         body.put("fields", fields);
 
         log.debug("[Eversign] Request body (sandbox={}): {}", sandboxMode, body);
@@ -223,11 +234,12 @@ public class EversignService {
         return String.format("%,.0f VNĐ", price);
     }
 
-
-    private Map<String, Object> createField (String identifier, String value) {
+    private Map<String, Object> createReadOnlyField(String identifier, String value) {
         Map<String, Object> field = new HashMap<>();
         field.put("identifier", identifier);
         field.put("value", value != null ? value : "");
+        field.put("type", "text");
+        field.put("read_only", true);
         return field;
     }
 
