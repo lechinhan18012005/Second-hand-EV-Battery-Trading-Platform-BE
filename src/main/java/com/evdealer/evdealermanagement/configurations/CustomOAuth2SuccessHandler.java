@@ -39,7 +39,7 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
         String baseBridgeUrl = "http://localhost:5173/oauth2/popup-bridge";
 
         try {
-            OAuth2User oAuth2User = (OAuth2User) authentication.getPrincipal();
+            OAuth2User oAuth2User = (OAuth2User) authentication.getPrincipal(); //OAuth2User chứa email, name, picture
 
             // 1) xác định provider
             String registrationId = ((OAuth2AuthenticationToken) authentication).getAuthorizedClientRegistrationId();
@@ -55,6 +55,7 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
             }
 
             // 2) success → redirect kèm token & email
+            //Encode giúp kí tự như = ? & biển đổi khác đi để FE ko đọc sai
             String token = URLEncoder.encode("Bearer " + loginResponse.getToken(), StandardCharsets.UTF_8);
             String email = URLEncoder.encode(loginResponse.getEmail(), StandardCharsets.UTF_8);
 

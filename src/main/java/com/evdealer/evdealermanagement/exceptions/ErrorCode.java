@@ -104,6 +104,7 @@ public enum ErrorCode {
     WISHLIST_NOT_FOUND(1601, "Wishlist not found", HttpStatus.NOT_FOUND),
     DUPLICATE_RESOURCE(1602, "Resource already exists", HttpStatus.CONFLICT),
     LOCAL_CANNOT_CHANGE(1603, "Local account cannot change phone number", HttpStatus.BAD_REQUEST),
+    PROVIDER_CANNOT_CHANGE(1604, "Provider cannot change email", HttpStatus.BAD_REQUEST),
 
     // --- Posting Errors (Codes 1700 - 1799) ---
     // Moved from conflicting 10xx range to dedicated 17xx range

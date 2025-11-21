@@ -102,7 +102,6 @@ public final class ProductSpecs {
         return ((root, query, criteriaBuilder) -> criteriaBuilder.conjunction());
     }
 
-
     private static boolean isBlank(String s) {
         return s == null || s.trim().isEmpty();
     }

@@ -63,9 +63,20 @@ public class ProfileService implements IAccountService {
 
         boolean hasProvider = authProviderRepository.existsByAccountId(existingAccount.getId());
 
+<<<<<<< HEAD
         if (!hasProvider && StringUtils.hasText(accountRequest.getPhone())) {
             if (!accountRequest.getPhone().equals(existingAccount.getPhone())) {
+=======
+        if(!hasProvider && StringUtils.hasText(accountRequest.getPhone())) {
+            if(!accountRequest.getPhone().equals(existingAccount.getPhone())) {
+>>>>>>> d75908ccae366a335464a57db244f4728cdb4ccb
                 throw new AppException(ErrorCode.LOCAL_CANNOT_CHANGE);
+            }
+        }
+
+        if(hasProvider && StringUtils.hasText(accountRequest.getEmail())) {
+            if(!accountRequest.getEmail().equals(existingAccount.getEmail())) {
+                throw new AppException(ErrorCode.PROVIDER_CANNOT_CHANGE);
             }
         }
 
