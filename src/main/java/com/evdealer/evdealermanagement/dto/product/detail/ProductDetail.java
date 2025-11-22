@@ -127,9 +127,12 @@ public class ProductDetail {
                 .sellerPhone(product.getSeller() != null ? product.getSeller().getPhone() : null)
                 .status(product.getStatus() != null ? product.getStatus().name() : null)
                 .createdAt(product.getCreatedAt())
+                .updatedAt(product.getUpdatedAt())
                 .addressDetail(product.getAddressDetail())
                 .city(product.getCity())
                 .district(product.getDistrict())
+                .expiresAt(product.getExpiresAt())
+                .featuredEndAt(product.getFeaturedEndAt())
                 .ward(product.getWard())
                 .productImagesList(imagesList) // Dùng biến đã được infer đúng type
                 .modelName(modelName)

@@ -159,7 +159,7 @@ public class MemberProductController {
 
     @PutMapping(value = "/vehicle/update/{productId}/rejected", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasRole('MEMBER')")
-    public VehiclePostResponse updateVehicleRejected(
+    public ProductDetail updateVehicleRejected(
             @PathVariable("productId") String productId,
             @RequestPart(value = "data", required = false) String dataJson,
             @RequestPart(value = "images", required = false) List<MultipartFile> images,

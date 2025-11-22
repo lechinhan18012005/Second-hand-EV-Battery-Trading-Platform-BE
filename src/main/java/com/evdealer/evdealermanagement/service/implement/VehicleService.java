@@ -3,6 +3,7 @@ package com.evdealer.evdealermanagement.service.implement;
 import com.evdealer.evdealermanagement.dto.post.common.ProductImageResponse;
 import com.evdealer.evdealermanagement.dto.post.vehicle.VehiclePostRequest;
 import com.evdealer.evdealermanagement.dto.post.vehicle.VehiclePostResponse;
+import com.evdealer.evdealermanagement.dto.product.detail.ProductDetail;
 import com.evdealer.evdealermanagement.dto.product.similar.SimilarProductResponse;
 import com.evdealer.evdealermanagement.dto.vehicle.brand.VehicleBrandsRequest;
 import com.cloudinary.Cloudinary;
@@ -510,7 +511,7 @@ public class VehicleService {
     }
 
     @Transactional
-    public VehiclePostResponse updateVehiclePostRejected(String currentUserId, String productId, VehicleUpdateProductRequest request,
+    public ProductDetail updateVehiclePostRejected(String currentUserId, String productId, VehicleUpdateProductRequest request,
                                                  List<MultipartFile> images, String imagesMetaJson) {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new AppException(ErrorCode.PRODUCT_NOT_FOUND));
@@ -596,8 +597,11 @@ public class VehicleService {
         product.setStatus(Product.Status.PENDING_REVIEW);
         vehicleDetailsRepository.save(details);
         productRepository.save(product);
+        productRepository.flush();
 
-        return VehicleMapper.toVehiclePostResponse(product, details, request, imageDtos);
+        ProductDetail p = ProductDetail.fromEntity(product);
+
+        return p;
     }
 
     @Transactional
