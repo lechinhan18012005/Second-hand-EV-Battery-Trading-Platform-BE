@@ -214,7 +214,7 @@ public class MemberProductController {
     }
 
     @GetMapping("/vehicle/{productId}")
-    public ResponseEntity<VehiclePostResponse> getVehicleById(@PathVariable String productId) {
+    public ResponseEntity<ProductDetail> getVehicleById(@PathVariable String productId) {
         return ResponseEntity.ok(vehicleService.getVehiclePostById(productId));
     }
 

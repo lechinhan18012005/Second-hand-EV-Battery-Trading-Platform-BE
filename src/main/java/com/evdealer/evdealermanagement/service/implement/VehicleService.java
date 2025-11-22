@@ -4,6 +4,7 @@ import com.evdealer.evdealermanagement.dto.post.common.ProductImageResponse;
 import com.evdealer.evdealermanagement.dto.post.vehicle.VehiclePostRequest;
 import com.evdealer.evdealermanagement.dto.post.vehicle.VehiclePostResponse;
 import com.evdealer.evdealermanagement.dto.product.detail.ProductDetail;
+import com.evdealer.evdealermanagement.dto.product.detail.ProductImageDto;
 import com.evdealer.evdealermanagement.dto.product.similar.SimilarProductResponse;
 import com.evdealer.evdealermanagement.dto.vehicle.brand.VehicleBrandsRequest;
 import com.cloudinary.Cloudinary;
@@ -41,10 +42,7 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -605,27 +603,35 @@ public class VehicleService {
     }
 
     @Transactional
-    public VehiclePostResponse getVehiclePostById(String productId) {
-        Product product =  productRepository.findById(productId)
+    public ProductDetail getVehiclePostById(String productId) {
+
+        Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new AppException(ErrorCode.PRODUCT_NOT_FOUND));
 
         VehicleDetails details = vehicleDetailsRepository.findByProductId(productId)
                 .orElseThrow(() -> new AppException(ErrorCode.VEHICLE_NOT_FOUND));
 
+        // KHÔNG dùng ProductImageResponse ở đây
         List<ProductImages> images = productImagesRepository.findByProduct(product);
-        List<ProductImageResponse> imageResponses = images.stream()
-                .map(img -> ProductImageResponse.builder()
-                        .id(img.getId())
-                        .url(img.getImageUrl())
-                        .isPrimary(img.getIsPrimary())
-                        .position(img.getPosition())
-                        .width(img.getWidth())
-                        .height(img.getHeight())
-                        .build())
-                .toList();
 
-        return VehicleMapper.toVehiclePostResponse(product, details, null, imageResponses);
+        // Tạo DTO vehicle full theo mapper chung
+        ProductDetail dto = ProductDetail.fromEntity(product);
+
+        // Gắn lại ảnh đúng kiểu DTO
+        dto.setProductImagesList(
+                images.stream()
+                        .sorted(Comparator.comparing(
+                                ProductImages::getPosition,
+                                Comparator.nullsLast(Integer::compareTo)))
+                        .map(ProductImageDto::fromEntity)
+                        .collect(Collectors.toList())
+        );
+
+        return dto;
     }
+
+
+
 
     @Transactional
     public List<SimilarProductResponse> getSimilarVehicles(String productId) {

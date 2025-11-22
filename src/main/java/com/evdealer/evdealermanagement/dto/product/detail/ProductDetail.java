@@ -62,6 +62,10 @@ public class ProductDetail {
 
     private Boolean hasReview;
 
+    private Integer batteryHealthPercent;
+
+    private Integer mileageKm;
+
     public static ProductDetail fromEntity(Product product) {
         if (product == null)
             return null;
@@ -139,6 +143,16 @@ public class ProductDetail {
                 .version(version)
                 .brandName(brandName)
                 .batteryType(batteryType)
+                .mileageKm(
+                        product.getVehicleDetails() != null
+                                ? product.getVehicleDetails().getMileageKm()
+                                : null
+                )
+                .batteryHealthPercent(
+                        product.getBatteryDetails() != null
+                                ? product.getBatteryDetails().getHealthPercent()
+                                : null
+                )
                 .rejectReason(product.getRejectReason())
                 .isHot(product.getIsHot() != null ? product.getIsHot() : false)
                 .sellerAvatarUrl(
