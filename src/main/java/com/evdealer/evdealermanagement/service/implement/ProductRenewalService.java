@@ -3,9 +3,8 @@ package com.evdealer.evdealermanagement.service.implement;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
 
+import com.evdealer.evdealermanagement.utils.VietNamDatetime;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -40,12 +39,6 @@ public class ProductRenewalService {
     private final PostPaymentRepository postPaymentRepository;
     private final VnpayService vnpayService;
     private final MomoService momoService;
-
-    private static final ZoneId VIETNAM_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
-
-    private LocalDateTime nowVietNam() {
-        return ZonedDateTime.now(VIETNAM_ZONE).toLocalDateTime();
-    }
 
     @Transactional
     public ProductRenewalResponse renewalProduct(String productId, ProductRenewalRequest req) {
@@ -158,7 +151,7 @@ public class ProductRenewalService {
                 .paymentStatus(totalPayable.signum() == 0
                         ? PostPayment.PaymentStatus.COMPLETED
                         : PostPayment.PaymentStatus.PENDING)
-                .createdAt(nowVietNam())
+                .createdAt(VietNamDatetime.nowVietNam())
                 .build();
 
         postPaymentRepository.save(payment);
@@ -232,7 +225,8 @@ public class ProductRenewalService {
                 ? payment.getAmount()
                 : product.getPostingFee().add(payment.getAmount()));
 
-        LocalDateTime now = nowVietNam();
+        LocalDateTime now = VietNamDatetime.nowVietNam();
+
         int featuredDays = 0;
 
         // Nếu có option → cộng thêm ngày featured
@@ -251,19 +245,31 @@ public class ProductRenewalService {
             product.setFeaturedEndAt(baseFeatured.plusDays(featuredDays));
         }
 
-        boolean extendExpire = shouldExtendExpire(payment);
+        boolean extendExpire = shouldExtendExpire(payment); // true nếu STANDARD
 
-        // Nếu gói thường → cộng 30 ngày
         if (extendExpire) {
-            LocalDateTime baseExpire = (product.getExpiresAt() != null && product.getExpiresAt().isAfter(now))
-                    ? product.getExpiresAt()
+            // ====== CASE STANDARD (có gia hạn chu kỳ) ======
+            LocalDateTime currentExpire = product.getExpiresAt();
+            LocalDateTime renewalStart = (currentExpire != null && currentExpire.isAfter(now))
+                    ? currentExpire
                     : now;
-            product.setExpiresAt(baseExpire.plusDays(30));
 
-            log.info("Extended expiresAt by 30 days (STANDARD)");
+            product.setStartRenewalAt(renewalStart);
+            product.setExpiresAt(renewalStart.plusDays(30)); // vẫn cộng 30d như bạn yêu cầu
+            // Không đụng updatedAt ngay; scheduler sẽ đẩy top tại renewalStart
+            log.info("STANDARD renew: startRenewalAt={}, new expiresAt={}",
+                    product.getStartRenewalAt(), product.getExpiresAt());
         } else {
-            log.info("⏸ Skipped extending expiresAt (PRIORITY/SPECIAL)");
+            // ====== CASE ADDON-ONLY (PRIORITY/SPECIAL) ======
+            // Không gia hạn expiresAt, không dùng startRenewalAt
+            product.setStartRenewalAt(null);
+
+            // Đẩy top NGAY lập tức vì mục tiêu là ưu tiên hiển thị hiện thời
+            product.setUpdatedAt(now);
+
+            log.info("ADDON-only renew: bumped updatedAt immediately to {}", product.getUpdatedAt());
         }
+
         // ===== Cập nhật trạng thái bài đăng =====
         if (product.getStatus() == Product.Status.ACTIVE ||
                 product.getStatus() == Product.Status.EXPIRED) {
@@ -275,7 +281,7 @@ public class ProductRenewalService {
         productRepository.save(product);
 
         log.info("""
-                    Payment COMPLETED:
+                   Payment COMPLETED:
                  - Product: {}
                  - New Status: {}
                  - Expires At: {}
@@ -293,5 +299,4 @@ public class ProductRenewalService {
             return false;
         return "STANDARD".equalsIgnoreCase(pkg.getCode());
     }
-
 }

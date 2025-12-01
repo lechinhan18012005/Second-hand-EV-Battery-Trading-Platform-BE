@@ -45,7 +45,7 @@ public class MomoController {
     private final ProductRenewalService productRenewalService;
     private final ProductRepository productRepository;
 
-    @Value("${frontend.url:http://localhost:5173}")
+    @Value("${frontend.url:https://eco-green.store}")
     private String frontendUrl;
 
     @PostMapping
@@ -112,7 +112,7 @@ public class MomoController {
 
             // 4) Redirect về frontend (giống style VNPay): giữ nguyên query string mà MoMo
             // trả về
-            String redirectUrl = frontendUrl + "/payment/momo-return" + (rawQuery != null ? ("?" + rawQuery) : "");
+            String redirectUrl = frontendUrl + "/post/manage" + (rawQuery != null ? ("?" + rawQuery) : "");
             log.info("🔄 Redirecting to: {}", redirectUrl);
             response.sendRedirect(redirectUrl);
 

@@ -3,7 +3,6 @@ package com.evdealer.evdealermanagement.service.implement;
 import com.evdealer.evdealermanagement.dto.common.PageResponse;
 import com.evdealer.evdealermanagement.dto.post.verification.PostVerifyResponse;
 import com.evdealer.evdealermanagement.dto.rate.ApprovalRateResponse;
-import com.evdealer.evdealermanagement.dto.vehicle.catalog.VehicleCatalogDTO;
 import com.evdealer.evdealermanagement.entity.account.Account;
 import com.evdealer.evdealermanagement.entity.post.PostPackage;
 import com.evdealer.evdealermanagement.entity.post.PostPayment;
@@ -11,20 +10,13 @@ import com.evdealer.evdealermanagement.entity.product.Product;
 import com.evdealer.evdealermanagement.entity.transactions.ContractDocument;
 import com.evdealer.evdealermanagement.entity.transactions.PurchaseRequest;
 import com.evdealer.evdealermanagement.entity.transactions.TransactionsHistory;
-import com.evdealer.evdealermanagement.entity.vehicle.Model;
-import com.evdealer.evdealermanagement.entity.vehicle.ModelVersion;
-import com.evdealer.evdealermanagement.entity.vehicle.VehicleBrands;
-import com.evdealer.evdealermanagement.entity.vehicle.VehicleCatalog;
-import com.evdealer.evdealermanagement.entity.vehicle.VehicleCategories;
-import com.evdealer.evdealermanagement.entity.vehicle.VehicleDetails;
 import com.evdealer.evdealermanagement.exceptions.AppException;
 import com.evdealer.evdealermanagement.exceptions.ErrorCode;
 import com.evdealer.evdealermanagement.mapper.post.PostVerifyMapper;
 import com.evdealer.evdealermanagement.mapper.staff.ApprovalRateMapper;
-import com.evdealer.evdealermanagement.mapper.vehicle.VehicleCatalogMapper;
 import com.evdealer.evdealermanagement.repository.*;
-import com.evdealer.evdealermanagement.utils.VietNamDatetime;
 
+import com.evdealer.evdealermanagement.utils.VietNamDatetime;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.data.domain.Pageable;
@@ -35,8 +27,8 @@ import lombok.extern.slf4j.Slf4j;
 import java.time.*;
 import java.util.List;
 import java.util.Locale;
-import java.util.Optional;
 import java.util.stream.Collectors;
+
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -47,8 +39,6 @@ import org.springframework.web.server.ResponseStatusException;
 @RequiredArgsConstructor
 public class StaffService {
 
-    private final AccountRepository accountRepository;
-
     private final ProductRepository productRepository;
 
     private static final ZoneId VIETNAM_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
@@ -56,14 +46,6 @@ public class StaffService {
     private final UserContextService userContextService;
 
     private final PostPaymentRepository postPaymentRepository;
-
-    private final VehicleCatalogRepository vehicleCatalogRepository;
-
-    private final GeminiRestService geminiRestService;
-
-    private final VehicleDetailsRepository vehicleDetailsRepository;
-
-    private final PurchaseRequestRepository purchaseRequestRepository;
 
     private final ContractDocumentRepository contractDocumentRepository;
 
@@ -128,10 +110,18 @@ public class StaffService {
         }
         log.debug("Elevated days from package option: {}", elevatedDays);
 
-        LocalDateTime now = nowVietNam();
-        product.setFeaturedEndAt(elevatedDays > 0 ? now.plusDays(elevatedDays) : null);
-        product.setExpiresAt(now.plusDays(30));
-        product.setUpdatedAt(now);
+        LocalDateTime nowVN = ZonedDateTime.now(VIETNAM_ZONE).toLocalDateTime();
+        log.info("=== DEBUG TIMEZONE ===");
+        log.info("VietNamDatetime.nowVietNam(): {}", nowVN);
+        log.info("ZonedDateTime.now(VIETNAM_ZONE): {}", ZonedDateTime.now(VIETNAM_ZONE).toLocalDateTime());
+        log.info("System default: {}", LocalDateTime.now());
+        log.info("System timezone: {}", ZoneId.systemDefault());
+        log.info("=====================");
+        product.setCreatedAt(nowVN);
+        product.setUpdatedAt(nowVN);
+        product.setExpiresAt(nowVN.plusDays(30));
+        product.setFeaturedEndAt(elevatedDays > 0 ? nowVN.plusDays(elevatedDays) : null);
+
 
         // Thay đổi status và set approver
         product.setStatus(Product.Status.ACTIVE);
@@ -141,28 +131,14 @@ public class StaffService {
         boolean isHot = false;
 
         if (postPackage != null) {
-            if ("HOT".equalsIgnoreCase(postPackage.getBadgeLabel()) || Boolean.TRUE.equals(postPackage.getShowTopSearch())) {
+            if ("HOT".equalsIgnoreCase(postPackage.getBadgeLabel())
+                    || Boolean.TRUE.equals(postPackage.getShowTopSearch())) {
                 isHot = true;
             }
         }
         product.setIsHot(isHot);
         log.info("Verifying product id={} by user id={}, elevatedDays={}, expiresAt={}",
                 product.getId(), currentUser.getId(), elevatedDays, product.getExpiresAt());
-
-        // Xử lý thông số kỹ thuật xe (nếu là sản phẩm xe)
-        if (isVehicleProduct(product)) {
-            log.debug("Product id={} is a vehicle product -> generating vehicle specs", product.getId());
-            try {
-                generateAndSaveVehicleSpecs(product);
-                log.debug("Vehicle specs generated successfully for product id={}", product.getId());
-            } catch (Exception e) {
-                log.error("Error while generating vehicle specs for product id={}: {}", product.getId(), e.getMessage(),
-                        e);
-                throw e;
-            }
-        } else {
-            log.debug("Product id={} is not a vehicle product, skipping specs generation", product.getId());
-        }
 
         // Lưu product
         Product savedProduct = productRepository.save(product);
@@ -173,14 +149,15 @@ public class StaffService {
                 savedProduct.getExpiresAt(),
                 savedProduct.getIsHot());
 
-        PostVerifyResponse response = PostVerifyMapper.mapToPostVerifyResponse(savedProduct, payment);
+        // FIX LAZY INITIALIZATION EXCEPTION
+        if (savedProduct.getImages() != null) {
+            savedProduct.getImages().size();
+        }
+
+        PostVerifyResponse response = PostVerifyMapper.toResponse(savedProduct, payment);
         log.debug("Returning PostVerifyResponse: {}", response);
 
         return response;
-    }
-
-    private boolean isVehicleProduct(Product product) {
-        return product.getType() != null && "VEHICLE".equals(product.getType().name());
     }
 
     @Transactional
@@ -246,110 +223,16 @@ public class StaffService {
         log.info("Product rejected successfully: id={}, status={}, reason='{}'",
                 savedProduct.getId(), savedProduct.getStatus(), rejectReason);
 
+        // FIX LAZY INITIALIZATION EXCEPTION
+        if (savedProduct.getImages() != null) {
+            savedProduct.getImages().size();
+        }
+
         // Trả response
-        PostVerifyResponse response = PostVerifyMapper.mapToPostVerifyResponse(savedProduct, payment);
+        PostVerifyResponse response = PostVerifyMapper.toResponse(savedProduct, payment);
         log.debug("Returning PostVerifyResponse: {}", response);
 
         return response;
-    }
-
-    // Generate và Lưu thông số kỹ thuật
-    private void generateAndSaveVehicleSpecs(Product product) {
-        // Lấy VehicleDetails
-        VehicleDetails details = vehicleDetailsRepository.findByProductId(product.getId()).orElse(null);
-        ModelVersion version = details.getVersion();
-
-        if (version == null || version.getModel() == null) {
-            log.warn(" Product ID {} is missing ModelVersion or Model. Cannot generate specs.", product.getId());
-            return;
-        }
-
-        if (details == null) {
-            log.warn("Product ID {} is missing VehicleDetails. Cannot link catalog.", product.getId());
-            return;
-        }
-
-        // Lấy thông tin Model, Brand, Category
-        Model model = version.getModel();
-        VehicleBrands brand = model.getBrand();
-        VehicleCategories type = model.getVehicleType();
-
-        // Validation các trường bắt buộc
-        if (type == null) {
-            log.error(" Model ID {} is missing VehicleType. Cannot generate specs.", model.getId());
-            return;
-        }
-
-        if (brand == null) {
-            log.error(" Model ID {} is missing Brand. Cannot generate specs.", model.getId());
-            return;
-        }
-
-        // Chuẩn bị dữ liệu cho Gemini
-        String productName = product.getTitle();
-        String modelName = model.getName();
-        String brandName = brand.getName();
-        String versionName = version.getName();
-        Short manufactureYear = product.getManufactureYear();
-
-        if (manufactureYear == null) {
-            log.warn("Product {} missing manufacture year. Defaulting to current year.", product.getId());
-            manufactureYear = (short) LocalDateTime.now().getYear();
-        }
-
-        // Kiểm tra VehicleCatalog đã có thông số cho ModelVersion này chưa
-        Optional<VehicleCatalog> existingCatalog = vehicleCatalogRepository
-                .findByVersionIdAndBrandIdAndModelAndYear(versionName, brandName, model, manufactureYear);
-
-        if (existingCatalog.isEmpty()) {
-            // Catalog chưa tồn tại → Generate mới bằng Gemini
-            log.info("Vehicle spec not found for ModelVersion {}. Generating new specs using Gemini...",
-                    version.getId());
-
-            try {
-                // Gọi Gemini để generate specs DTO
-                VehicleCatalogDTO specsDto = geminiRestService.getVehicleSpecs(
-                        productName, modelName, brandName, versionName, manufactureYear);
-
-                // Ánh xạ DTO sang Entity
-                VehicleCatalog newCatalog = VehicleCatalogMapper.mapFromDto(specsDto);
-
-                // Gán các foreign key & trường bắt buộc
-                newCatalog.setVersion(version);
-                newCatalog.setCategory(type);
-                newCatalog.setBrand(brand);
-                newCatalog.setModel(model);
-                newCatalog.setYear(manufactureYear);
-
-                // Lưu catalog vào DB
-                VehicleCatalog savedCatalog = vehicleCatalogRepository.save(newCatalog);
-                log.info("Successfully generated and saved new VehicleCatalog ID: {} for ModelVersion {}",
-                        savedCatalog.getId(), version.getId());
-
-                // Liên kết catalog vào VehicleDetails
-                details.setVehicleCatalog(savedCatalog);
-                vehicleDetailsRepository.save(details);
-                log.info("Successfully linked new VehicleCatalog to Product {}", product.getId());
-
-            } catch (Exception e) {
-                log.error("Failed to generate or save vehicle specs for Product ID {}: {}",
-                        product.getId(), e.getMessage(), e);
-            }
-        } else {
-            // Nếu catalog đã tồn tại, link nó vào VehicleDetails (nếu chưa link)
-            VehicleCatalog catalog = existingCatalog.get();
-
-            if (details.getVehicleCatalog() == null ||
-                    !details.getVehicleCatalog().getId().equals(catalog.getId())) {
-
-                details.setVehicleCatalog(catalog);
-                vehicleDetailsRepository.save(details);
-                log.info("Linked existing VehicleCatalog (ID: {}) to Product {}",
-                        catalog.getId(), product.getId());
-            } else {
-                log.info("VehicleCatalog already linked to Product {}", product.getId());
-            }
-        }
     }
 
     @Transactional(readOnly = true)
@@ -387,7 +270,12 @@ public class StaffService {
                 log.debug("No completed payment found for productId={}", product.getId());
             }
 
-            return PostVerifyMapper.mapToPostVerifyResponse(product, payment);
+            // FIX LAZY INITIALIZATION EXCEPTION
+            if (product.getImages() != null) {
+                product.getImages().size();
+            }
+
+            return PostVerifyMapper.toResponse(product, payment);
         });
 
         log.info("Listed pending posts successfully: returned {} items (page {} of {})",
@@ -440,7 +328,12 @@ public class StaffService {
                 log.debug("No completed payment found for productId={}", product.getId());
             }
 
-            return PostVerifyMapper.mapToPostVerifyResponse(product, payment);
+            // FIX LAZY INITIALIZATION EXCEPTION
+            if (product.getImages() != null) {
+                product.getImages().size();
+            }
+
+            return PostVerifyMapper.toResponse(product, payment);
         });
 
         log.info("Listed pending posts by type successfully: type={}, returned {} items (page {} of {})",

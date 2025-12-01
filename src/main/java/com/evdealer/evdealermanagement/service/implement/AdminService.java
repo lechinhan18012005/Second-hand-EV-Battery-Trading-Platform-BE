@@ -20,9 +20,13 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Objects;
 
 @Slf4j
 @Service
@@ -31,30 +35,19 @@ public class AdminService {
 
     @Autowired
     public ProductRepository productRepository;
-
-    private final PostPaymentRepository postPaymentRepository;
-
     @Autowired
     public AccountRepository accountRepository;
     @Autowired
     private PasswordEncoder passwordEncoder;
 
-    public List<ProductDetail> getAllProducts() {
-        try {
-            log.debug("Fetching all products");
-            List<ProductDetail> list = productRepository.findAll()
-                    .stream()
-                    .map(ProductMapper::toDetailDto)
-                    .toList();
+    @Transactional(readOnly = true)
+    public PageResponse<ProductDetail> getAllProducts(Pageable pageable) {
+        log.debug("Fetching products with pageable: page={}, size={}, sort={}",
+                pageable.getPageNumber(), pageable.getPageSize(), pageable.getSort());
 
-            List<ProductDetail> sortedList = new ArrayList<>(list);
-            sortedList.sort(Comparator.comparing(ProductDetail::getCreatedAt));
+        Page<Product> page = productRepository.findAll(pageable);
 
-            return sortedList;
-        } catch (Exception e) {
-            log.error("Error fetching all products", e);
-            return List.of();
-        }
+        return PageResponse.fromPage(page, ProductMapper::toDetailDto);
     }
 
     public PageResponse<Account> getMemberAccounts(Pageable pageable) {
@@ -70,7 +63,7 @@ public class AdminService {
             Page<Account> accountList = accountRepository.findByRole(role, pageable);
 
             List<Account> sortedList = new ArrayList<>(accountList.getContent());
-            sortedList.sort(Comparator.comparing(Account::getCreatedAt));
+            sortedList.sort(Comparator.comparing(Account::getCreatedAt).reversed());
 
             PageResponse<Account> pageResponse = PageResponse.of(sortedList, accountList);
 
@@ -175,5 +168,4 @@ public class AdminService {
         accountRepository.delete(target);
         log.info("Account {} deleted successfully by admin {}", target.getUsername(), adminUsername);
     }
-
 }

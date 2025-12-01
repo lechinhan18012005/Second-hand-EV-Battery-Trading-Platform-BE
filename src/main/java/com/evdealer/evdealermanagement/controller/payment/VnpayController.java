@@ -37,7 +37,7 @@ public class VnpayController {
     private final ProductRenewalService productRenewalService;
     private final ProductRepository productRepository;
 
-    @Value("${frontend.url:http://localhost:5173}")
+    @Value("${frontend.url:https://eco-green.store}")
     private String frontendUrl;
 
     /**

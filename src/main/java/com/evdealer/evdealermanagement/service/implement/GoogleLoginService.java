@@ -4,8 +4,11 @@ import com.evdealer.evdealermanagement.dto.account.custom.CustomAccountDetails;
 import com.evdealer.evdealermanagement.dto.account.login.AccountLoginResponse;
 import com.evdealer.evdealermanagement.entity.account.Account;
 import com.evdealer.evdealermanagement.entity.account.AuthProvider;
+import com.evdealer.evdealermanagement.exceptions.AppException;
+import com.evdealer.evdealermanagement.exceptions.ErrorCode;
 import com.evdealer.evdealermanagement.repository.AccountRepository;
 import com.evdealer.evdealermanagement.repository.AuthProviderRepository;
+import com.evdealer.evdealermanagement.utils.Utils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -30,7 +33,7 @@ public class GoogleLoginService {
     public AccountLoginResponse processGoogleLogin(OAuth2User u) throws Exception {
 
         log.info("Google Attributes: {}", u.getAttributes());
-        String sub = u.getAttribute("sub");
+        String sub = u.getAttribute("sub"); //ID duy nhất của Google (không đổi, dùng để nhận diện user này).
         String email = u.getAttribute("email");
         String finalEmail = email;
         String name = Optional.ofNullable(u.getAttribute("name")).orElseGet(() -> finalEmail != null ? finalEmail.split("@")[0] : "Google User").toString();
@@ -39,6 +42,10 @@ public class GoogleLoginService {
         //dự phòng nếu email trên ko lấy đc
         if(email == null && sub != null) {
             email = sub + "@google.com";
+        }
+
+        if(!Utils.isValidEmail(email)) {
+            throw new AppException(ErrorCode.INVALID_EMAIL);
         }
 
         // Tìm kiếm trong bảng AuthProvider xem đã  có bản ghi liên kết nào với Provider=GOOGLE và ProviderUserId=sub này chưa.
@@ -59,6 +66,7 @@ public class GoogleLoginService {
                 int i = 1;
                 while (accountRepo.existsByUsername(username)) {
                     username = usernameBase + "_" + i;
+                    i ++;
                 }
 
                 acc = Account.builder()

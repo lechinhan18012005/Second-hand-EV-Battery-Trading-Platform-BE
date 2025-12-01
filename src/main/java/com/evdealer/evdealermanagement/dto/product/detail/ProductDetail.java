@@ -52,12 +52,19 @@ public class ProductDetail {
     private String modelName;
     private String version;
     private String batteryType;
+    private String rejectReason;
 
     private Boolean isHot;
 
     private Boolean isWishlisted;
 
     private String sellerAvatarUrl;
+
+    private Boolean hasReview;
+
+    private Integer batteryHealthPercent;
+
+    private Integer mileageKm;
 
     public static ProductDetail fromEntity(Product product) {
         if (product == null)
@@ -124,15 +131,29 @@ public class ProductDetail {
                 .sellerPhone(product.getSeller() != null ? product.getSeller().getPhone() : null)
                 .status(product.getStatus() != null ? product.getStatus().name() : null)
                 .createdAt(product.getCreatedAt())
+                .updatedAt(product.getUpdatedAt())
                 .addressDetail(product.getAddressDetail())
                 .city(product.getCity())
                 .district(product.getDistrict())
+                .expiresAt(product.getExpiresAt())
+                .featuredEndAt(product.getFeaturedEndAt())
                 .ward(product.getWard())
                 .productImagesList(imagesList) // Dùng biến đã được infer đúng type
                 .modelName(modelName)
                 .version(version)
                 .brandName(brandName)
                 .batteryType(batteryType)
+                .mileageKm(
+                        product.getVehicleDetails() != null
+                                ? product.getVehicleDetails().getMileageKm()
+                                : null
+                )
+                .batteryHealthPercent(
+                        product.getBatteryDetails() != null
+                                ? product.getBatteryDetails().getHealthPercent()
+                                : null
+                )
+                .rejectReason(product.getRejectReason())
                 .isHot(product.getIsHot() != null ? product.getIsHot() : false)
                 .sellerAvatarUrl(
                         product.getSeller() != null && product.getSeller().getAvatarUrl() != null

@@ -13,8 +13,8 @@ import java.util.List;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class SellerReviewRequest {
 
-    @NotBlank(message = "Purchase request ID không được để trống")
-    String purchaseRequestId;
+    @NotBlank(message = "Product ID không được để trống")
+    String productId;
 
     @Min(value = 1, message = "Rating phải từ 1 đến 5")
     @Max(value = 5, message = "Rating phải từ 1 đến 5")

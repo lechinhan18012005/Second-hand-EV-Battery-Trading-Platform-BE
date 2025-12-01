@@ -20,7 +20,7 @@ public interface IProductService {
      */
     PageResponse<PostVerifyResponse> getAllProductsWithStatus(String status, Pageable pageable);
 
-    PageResponse<PostVerifyResponse> getAllProductsWithStatusAll(Pageable pageable);
+    PageResponse<PostVerifyResponse> getAllProductsWithAllStatus(Pageable pageable);
     /**
      * Retrieves a product by its unique identifier
      * @param id the product ID to search for

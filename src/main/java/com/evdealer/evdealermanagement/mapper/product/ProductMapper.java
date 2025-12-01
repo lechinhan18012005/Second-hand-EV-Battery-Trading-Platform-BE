@@ -8,6 +8,7 @@ import com.evdealer.evdealermanagement.entity.battery.BatteryDetails;
 import com.evdealer.evdealermanagement.entity.product.Product;
 import com.evdealer.evdealermanagement.entity.product.ProductImages;
 import com.evdealer.evdealermanagement.entity.vehicle.VehicleDetails;
+import com.evdealer.evdealermanagement.service.implement.SellerReviewService;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.Hibernate;
 
@@ -19,6 +20,7 @@ import java.util.stream.Collectors;
 
 @Slf4j
 public class ProductMapper {
+
 
     // Entity -> DTO
     public static ProductDetail toDetailDto(Product product) {
@@ -102,6 +104,7 @@ public class ProductMapper {
                 .modelName(modelName)
                 .version(version)
                 .batteryType(batteryType)
+                .rejectReason(product.getRejectReason())
                 .isHot(product.getIsHot() != null ? product.getIsHot() : false)
                 .build();
     }

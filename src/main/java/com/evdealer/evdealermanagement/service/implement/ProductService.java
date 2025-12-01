@@ -7,7 +7,8 @@ import com.evdealer.evdealermanagement.dto.product.compare.ProductCompareRespons
 import com.evdealer.evdealermanagement.dto.product.compare.ProductSuggestionResponse;
 import com.evdealer.evdealermanagement.dto.product.detail.ProductDetail;
 import com.evdealer.evdealermanagement.dto.product.moderation.ProductPendingResponse;
-import com.evdealer.evdealermanagement.dto.product.show.ProductResponse;
+import com.evdealer.evdealermanagement.dto.product.status.ProductActiveOrHiddenResponse;
+import com.evdealer.evdealermanagement.dto.product.status.ProductStatusResponse;
 import com.evdealer.evdealermanagement.dto.vehicle.detail.VehicleDetailResponse;
 import com.evdealer.evdealermanagement.entity.account.Account;
 import com.evdealer.evdealermanagement.entity.battery.BatteryDetails;
@@ -66,13 +67,13 @@ public class ProductService implements IProductService {
             Product.Status statusEnum = validateAndParseStatus(status);
 
             Specification<Product> specification = Specification.where(ProductSpecs.hasStatus(statusEnum));
-            Page<Product> products = productRepository.findAll(specification, pageable);
+            Page<Product> products = productRepository.findByStatusWithImages(statusEnum, pageable);
 
             List<PostVerifyResponse> content = products.getContent().stream().map(
                     product -> {
                         PostPayment payments = postPaymentRepository
                                 .findFirstByProductIdOrderByCreatedAtDesc(product.getId());
-                        return PostVerifyMapper.mapToPostVerifyResponse(product, payments);
+                        return PostVerifyMapper.toResponse(product, payments);
                     })
                     .toList();
             return PageResponse.of(content, products);
@@ -88,21 +89,29 @@ public class ProductService implements IProductService {
 
     @Override
     @Transactional(readOnly = true)
-    public PageResponse<PostVerifyResponse> getAllProductsWithStatusAll(Pageable pageable) {
-        pageable = capPageSize(pageable);
-        Specification<Product> spec = Specification.where(ProductSpecs.all());
-        log.info("=== START getAllProductsWithStatusAll==");
-        log.info("spec =  {}", spec);
-        Page<Product> products = productRepository.findAll(spec, pageable);
-        log.info("products =  {}", products);
-        List<PostVerifyResponse> content = products.getContent().stream().map(
-                product -> {
-                    PostPayment payments = postPaymentRepository.findByProductId(product.getId());
-                    return PostVerifyMapper.mapToPostVerifyResponse(product, payments);
-                })
-                .toList();
-        return PageResponse.of(content, products);
+    public PageResponse<PostVerifyResponse> getAllProductsWithAllStatus(Pageable pageable) {
+        try {
+            log.info("=== START getAllProductsWithAllStatus ===");
+            pageable = capPageSize(pageable);
+
+            Specification<Product> specification = Specification.where(ProductSpecs.all());
+            Page<Product> products = productRepository.findAllWithImages( pageable);
+
+            List<PostVerifyResponse> content = products.getContent().stream()
+                    .map(product -> {
+                        PostPayment payments = postPaymentRepository
+                                .findFirstByProductIdOrderByCreatedAtDesc(product.getId());
+                        return PostVerifyMapper.toResponse(product, payments);
+                    })
+                    .toList();
+
+            return PageResponse.of(content, products);
+        } catch (Exception e) {
+            log.error("FATAL ERROR in getAllProductsWithAllStatus", e);
+            throw new RuntimeException("Failed to get all products: " + e.getMessage(), e);
+        }
     }
+
 
     @Override
     @Transactional(readOnly = true)
@@ -171,7 +180,7 @@ public class ProductService implements IProductService {
 
         Sort sort = Sort.by(
                 Sort.Order.desc("isHot"),
-                Sort.Order.desc("createdAt"));
+                Sort.Order.desc("updatedAt"));
         pageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), sort);
 
         Specification<Product> spec = Specification
@@ -356,18 +365,58 @@ public class ProductService implements IProductService {
 
         Product.ProductType emunType = parseTypeOrNull(type);
 
+        Specification<Product> brandSpec;
+        if (emunType == Product.ProductType.VEHICLE) {
+            log.info("Using hasVehicleBrandId with brand: {}", brand);
+            brandSpec = ProductSpecs.hasVehicleBrandId(brand);
+        } else {
+            log.info("Using hasBatteryBrandId with brand: {}", brand);
+            brandSpec = ProductSpecs.hasBatteryBrandId(brand);
+        }
+
         Specification<Product> spec = Specification
                 .where(ProductSpecs.hasStatus(Product.Status.ACTIVE))
                 .and(ProductSpecs.titleLike(name))
                 .and(ProductSpecs.hasType(emunType))
-                .and(emunType == Product.ProductType.VEHICLE ? ProductSpecs.hasVehicleBrandId(brand)
-                        : ProductSpecs.hasBatteryBrandId(brand))
+                .and(brandSpec)
                 .and(ProductSpecs.cityEq(city))
                 .and(ProductSpecs.districtEq(district))
                 .and(ProductSpecs.priceGte(minPrice))
                 .and(ProductSpecs.priceLte(maxPrice))
                 .and(ProductSpecs.yearGte(yearFrom))
                 .and(ProductSpecs.yearLte(yearTo));
+
+        Page<Product> page = productRepository.findAll(spec, pageable);
+
+        String accountId = SecurityUtils.getCurrentAccountId(); // có thể null nếu chưa đăng nhập
+        List<ProductDetail> content;
+        try {
+            content = wishlistService.attachWishlistFlag(
+                    accountId,
+                    page.getContent(),
+                    ProductMapper::toDetailDto, // Product -> ProductDetail
+                    ProductDetail::setIsWishlisted);
+        } catch (Exception e) {
+            // Không để toàn API fail vì wishlist thất bại
+            content = page.getContent().stream().map(ProductMapper::toDetailDto).toList();
+        }
+
+        // Lưu ý: thứ tự trả về đã theo pageable.sort (không cần sort lại ở đây)
+        return PageResponse.of(content, page);
+    }
+
+
+
+
+    @Transactional(readOnly = true)
+    public PageResponse<ProductDetail> findProductsByBrand(String brandId, Pageable pageable) {
+
+        pageable = capPageSize(pageable);
+
+
+        Specification<Product> spec = Specification
+                .where(ProductSpecs.hasStatus(Product.Status.ACTIVE))
+                .and(ProductSpecs.hasAnyBrand(brandId));
 
         Page<Product> page = productRepository.findAll(spec, pageable);
 
@@ -612,5 +661,145 @@ public class ProductService implements IProductService {
         return PageResponse.fromPage(page, ProductDetail::fromEntity);
     }
 
+    @Transactional
+    public ProductActiveOrHiddenResponse hideProduct(String accountId, String productId, String statusParam) {
+        // 1) Validate statusParam (FE gửi cố định "HIDDEN")
+        Product.Status target = parseStatusOrThrow(statusParam);
+        if (target != Product.Status.HIDDEN) {
+            throw new AppException(ErrorCode.BAD_REQUEST,
+                    "Trạng thái yêu cầu không hợp lệ. Chỉ được ẩn tin về HIDDEN.");
+        }
 
+        // 2) Load & Ownership
+        Product p = productRepository.findById(productId)
+                .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND, "Không tìm thấy sản phẩm"));
+        ensureOwner(accountId, p);
+
+        // 3) Business rule
+        if (p.getStatus() != Product.Status.ACTIVE) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Chỉ có thể ẩn tin khi tin đang ACTIVE.");
+        }
+
+        // 4) Update
+        p.setStatus(Product.Status.HIDDEN);
+        p.setUpdatedAt(VietNamDatetime.nowVietNam());
+        productRepository.save(p);
+
+        return ProductActiveOrHiddenResponse.builder()
+                .productId(p.getId())
+                .status(p.getStatus())
+                .updatedAt(p.getUpdatedAt())
+                .message("Đã ẩn tin thành công.")
+                .build();
+    }
+
+    @Transactional
+    public ProductActiveOrHiddenResponse activeProduct(String accountId, String productId, String statusParam) {
+        // 1) Validate statusParam (FE gửi cố định "ACTIVE")
+        Product.Status target = parseStatusOrThrow(statusParam);
+        if (target != Product.Status.ACTIVE) {
+            throw new AppException(ErrorCode.BAD_REQUEST,
+                    "Trạng thái yêu cầu không hợp lệ. Chỉ được bật tin về ACTIVE.");
+        }
+
+        // 2) Load & Ownership
+        Product p = productRepository.findById(productId)
+                .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND, "Không tìm thấy sản phẩm"));
+        ensureOwner(accountId, p);
+
+        // 3) Không cho bật nếu ở các trạng thái cấm
+        if (p.getStatus() == Product.Status.SOLD
+                || p.getStatus() == Product.Status.REJECTED
+                || p.getStatus() == Product.Status.PENDING_PAYMENT
+                || p.getStatus() == Product.Status.PENDING_REVIEW
+                || p.getStatus() == Product.Status.EXPIRED) {
+            throw new AppException(ErrorCode.BAD_REQUEST,
+                    "Không thể bật tin ở trạng thái " + p.getStatus()
+                            + ". Vui lòng gia hạn/đăng lại hoặc liên hệ hỗ trợ.");
+        }
+
+        // 4) Chỉ cho phép bật từ HIDDEN (và tùy chọn DRAFT)
+        if (!(p.getStatus() == Product.Status.HIDDEN || p.getStatus() == Product.Status.DRAFT)) {
+            throw new AppException(ErrorCode.BAD_REQUEST,
+                    "Chỉ có thể bật tin từ trạng thái HIDDEN hoặc DRAFT.");
+        }
+
+        // 5) Hạn tin (nếu có)
+        if (p.getExpiresAt() != null && p.getExpiresAt().isBefore(VietNamDatetime.nowVietNam())) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Tin đã hết hạn. Vui lòng gia hạn trước khi bật lại.");
+        }
+
+        // 6) Kiểm tra tối thiểu nội dung trước khi ACTIVE
+        validateMinimalContent(p);
+
+        // 7) Update
+        p.setStatus(Product.Status.ACTIVE);
+        p.setUpdatedAt(VietNamDatetime.nowVietNam());
+        productRepository.save(p);
+
+        return ProductActiveOrHiddenResponse.builder()
+                .productId(p.getId())
+                .status(p.getStatus())
+                .updatedAt(p.getUpdatedAt())
+                .message("Đã bật tin thành công.")
+                .build();
+    }
+
+    // ===== Helpers =====
+
+    private Product.Status parseStatusOrThrow(String input) {
+        try {
+            return Product.Status.valueOf(input.toUpperCase(Locale.ROOT));
+        } catch (Exception e) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Giá trị status không hợp lệ: " + input);
+        }
+    }
+
+    private void ensureOwner(String accountId, Product p) {
+        if (p.getSeller() == null || !Objects.equals(p.getSeller().getId(), accountId)) {
+            throw new AppException(ErrorCode.FORBIDDEN, "Bạn không có quyền thao tác trên sản phẩm này.");
+        }
+    }
+
+    private void validateMinimalContent(Product p) {
+        // title
+        if (!org.springframework.util.StringUtils.hasText(p.getTitle())) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Vui lòng bổ sung tiêu đề tin.");
+        }
+        // price – nếu không phải thương lượng
+        if (p.getSaleType() != Product.SaleType.NEGOTIATION) {
+            if (p.getPrice() == null || p.getPrice().compareTo(BigDecimal.ZERO) <= 0) {
+                throw new AppException(ErrorCode.BAD_REQUEST, "Giá bán phải > 0 (hoặc chọn hình thức Thương lượng).");
+            }
+        }
+        // phone
+        if (!org.springframework.util.StringUtils.hasText(p.getSellerPhone())) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Vui lòng bổ sung số điện thoại người bán.");
+        }
+        // địa chỉ cơ bản
+        if (!org.springframework.util.StringUtils.hasText(p.getCity())
+                || !org.springframework.util.StringUtils.hasText(p.getDistrict())
+                || !org.springframework.util.StringUtils.hasText(p.getWard())) {
+            throw new AppException(ErrorCode.BAD_REQUEST,
+                    "Vui lòng bổ sung địa chỉ (tỉnh/thành, quận/huyện, phường/xã).");
+        }
+        // condition/type
+        if (p.getConditionType() == null || p.getType() == null) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Loại sản phẩm và tình trạng không được để trống.");
+        }
+        // ảnh
+        boolean hasImage = p.getImages() != null
+                && p.getImages().stream().anyMatch(img -> img != null
+                        && org.springframework.util.StringUtils.hasText(img.getImageUrl()));
+        if (!hasImage) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Vui lòng thêm ít nhất 1 ảnh cho sản phẩm.");
+        }
+        // chi tiết theo loại
+        if (p.getType() == Product.ProductType.VEHICLE && p.getVehicleDetails() == null) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Vui lòng bổ sung chi tiết xe (vehicleDetails).");
+        }
+        if (p.getType() == Product.ProductType.BATTERY && p.getBatteryDetails() == null) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Vui lòng bổ sung chi tiết pin (batteryDetails).");
+        }
+    }
 }

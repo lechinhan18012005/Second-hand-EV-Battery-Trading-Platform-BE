@@ -92,6 +92,9 @@ public class PurchaseRequest {
     @Column(name = "completed_at")
     private LocalDateTime completedAt;
 
+    @Column(name = "has_purchase_requested")
+    private boolean hasPurchaseRequested;
+
     @PrePersist
     protected void onCreate() {
         if (id == null) {

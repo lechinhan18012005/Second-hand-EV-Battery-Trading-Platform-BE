@@ -4,15 +4,19 @@ import com.evdealer.evdealermanagement.dto.product.detail.ProductDetail;
 import com.evdealer.evdealermanagement.dto.product.status.ProductStatusResponse;
 import com.evdealer.evdealermanagement.entity.account.Account;
 import com.evdealer.evdealermanagement.entity.product.Product;
+import com.evdealer.evdealermanagement.entity.transactions.PurchaseRequest;
 import com.evdealer.evdealermanagement.exceptions.AppException;
 import com.evdealer.evdealermanagement.exceptions.ErrorCode;
 import com.evdealer.evdealermanagement.mapper.product.ProductMapper;
 import com.evdealer.evdealermanagement.repository.AccountRepository;
 import com.evdealer.evdealermanagement.repository.ProductRepository;
+import com.evdealer.evdealermanagement.repository.PurchaseRequestRepository;
 import com.evdealer.evdealermanagement.utils.VietNamDatetime;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -30,6 +34,9 @@ public class MemberService {
     private final PasswordEncoder passwordEncoder;
     private final AccountRepository accountRepository;
     private final EmailService emailService;
+    private final PurchaseRequestRepository purchaseRequestRepository;
+    private final UserContextService userContextService;
+    private final SellerReviewService sellerReviewService;
 
 
     /**
@@ -101,4 +108,18 @@ public class MemberService {
     }
 
 
+    public Page<ProductDetail> getBoughtProduct( Pageable pageable) {
+        String buyerId = userContextService.getCurrentUserId()
+                .orElseThrow(() -> new AppException(ErrorCode.UNAUTHORIZED));
+
+        Page<PurchaseRequest> completedPurchase = purchaseRequestRepository.findCompletedByBuyerId(buyerId, pageable);
+
+        return completedPurchase.map(request -> {
+            Product product = request.getProduct();
+            ProductDetail dto = ProductMapper.toDetailDto(product);
+            boolean reviewed = sellerReviewService.hasReview(buyerId, product.getId());
+            dto.setHasReview(reviewed);
+            return dto;
+        });
+    }
 }

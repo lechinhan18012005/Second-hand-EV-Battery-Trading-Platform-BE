@@ -84,6 +84,7 @@ public class PostPackage {
     @Column(name = "updated_at")
     Instant updatedAt;
 
+
     // --- ENUMS ---
     public enum BillingMode {
         FIXED, PER_DAY

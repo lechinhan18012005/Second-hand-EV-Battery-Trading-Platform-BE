@@ -8,7 +8,7 @@ public class VietNamDatetime {
 
     public static final ZoneId VIETNAM_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
 
-    public static LocalDateTime nowVietNam () {
+    public static LocalDateTime nowVietNam() {
         return ZonedDateTime.now(VIETNAM_ZONE).toLocalDateTime();
     }
 }

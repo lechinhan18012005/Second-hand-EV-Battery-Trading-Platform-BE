@@ -1,139 +1,120 @@
 package com.evdealer.evdealermanagement.mapper.post;
 
-import org.hibernate.Hibernate;
-
 import com.evdealer.evdealermanagement.dto.post.verification.PostVerifyResponse;
-import com.evdealer.evdealermanagement.entity.battery.BatteryDetails;
 import com.evdealer.evdealermanagement.entity.post.PostPayment;
 import com.evdealer.evdealermanagement.entity.product.Product;
-import com.evdealer.evdealermanagement.entity.vehicle.VehicleDetails;
 
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
-import java.time.temporal.ChronoUnit;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class PostVerifyMapper {
 
-    private static final ZoneId VIETNAM_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
-
-    private PostVerifyMapper() {
-    }
-
-    public static PostVerifyResponse mapToPostVerifyResponse(Product p, PostPayment payment) {
-        if (p == null)
+    public static PostVerifyResponse toResponse(Product product, PostPayment payment) {
+        if (product == null) {
             return null;
-
-        // Thumbnail: lấy ảnh đầu tiên nếu có
-        String thumbnail = null;
-        if (p.getImages() != null && !p.getImages().isEmpty() && p.getImages().get(0) != null) {
-            thumbnail = p.getImages().get(0).getImageUrl();
         }
 
-        String brandName = null;
-        String modelName = null;
-        String version = null;
-        String batteryType = null;
+        PostVerifyResponse.PostVerifyResponseBuilder builder = PostVerifyResponse.builder()
+                // Basic info
+                .id(product.getId()).status(product.getStatus())
+                .rejectReason(product.getRejectReason())
+                .title(product.getTitle()).description(product.getDescription())
+                .images(product.getImages())
+                .productType(product.getType()).createdAt(product.getCreatedAt())
+                .updatedAt(product.getUpdatedAt())
 
-        if (p.getType() == Product.ProductType.VEHICLE) {
-            Hibernate.initialize(p.getVehicleDetails());
-            VehicleDetails vehicleDetails = p.getVehicleDetails();
+                // Price & Location
+                .price(product.getPrice()).city(product.getCity()).district(product.getDistrict())
+                .ward(product.getWard()).addressDetail(product.getAddressDetail())
 
-            if (vehicleDetails != null && vehicleDetails.getVersion() != null) {
-                version = vehicleDetails.getVersion().getName();
+                // Dates
+                .featuredEndAt(product.getFeaturedEndAt()).expiresAt(product.getExpiresAt())
 
-                if (vehicleDetails.getBrand() != null && vehicleDetails.getBrand().getName() != null) {
-                    brandName = vehicleDetails.getBrand().getName();
-                }
-                if (vehicleDetails.getModel() != null && vehicleDetails.getModel().getName() != null) {
-                    modelName = vehicleDetails.getModel().getName();
+                // Seller info
+                .sellerId(product.getSeller() != null ? product.getSeller().getId() : null)
+                .sellerName(product.getSeller() != null ? product.getSeller().getFullName() : null)
+                .sellerPhone(product.getSeller() != null ? product.getSeller().getPhone() : null)
+                .sellerEmail(product.getSeller() != null ? product.getSeller().getEmail() : null);
+
+        // Brand/Model/Version (common for both types)
+        switch (product.getType()) {
+            case VEHICLE -> {
+                if (product.getVehicleDetails() != null && product.getVehicleDetails().getBrand() != null) {
+                    builder.brandId(product.getVehicleDetails().getBrand().getId())
+                            .brandName(product.getVehicleDetails().getBrand().getName());
                 }
             }
-        } else if (p.getType() == Product.ProductType.BATTERY) {
-            Hibernate.initialize(p.getBatteryDetails());
-            BatteryDetails batteryDetails = p.getBatteryDetails();
-
-            if (batteryDetails != null && batteryDetails.getBrand() != null) {
-                brandName = batteryDetails.getBrand().getName();
-
-                if (batteryDetails.getBatteryType() != null) {
-                    batteryType = batteryDetails.getBatteryType().getName();
+            case BATTERY -> {
+                if (product.getBatteryDetails() != null && product.getBatteryDetails().getBrand() != null) {
+                    builder.brandId(product.getBatteryDetails().getBrand().getId())
+                            .brandName(product.getBatteryDetails().getBrand().getName());
                 }
+            }
+            default -> {
             }
         }
 
-        // Xử lý featuredEndAt và expiresAt
-        LocalDateTime featuredEndAt = p.getFeaturedEndAt();
-        LocalDateTime expiresAt = p.getExpiresAt();
-
-        // Nếu product chưa được duyệt (PENDING_REVIEW), tính toán thời gian dự kiến
-        if (p.getStatus() == Product.Status.PENDING_REVIEW && payment != null) {
-            LocalDateTime now = ZonedDateTime.now(VIETNAM_ZONE).toLocalDateTime();
-
-            // Tính thời gian featured dự kiến
-            if (payment.getPostPackageOption() != null &&
-                    payment.getPostPackageOption().getDurationDays() != null) {
-                int elevatedDays = payment.getPostPackageOption().getDurationDays();
-                if (elevatedDays > 0) {
-                    featuredEndAt = now.plusDays(elevatedDays);
-                }
-            }
-
-            // Thời gian hết hạn dự kiến (30 ngày)
-            expiresAt = now.plusDays(30);
-        }
-
-        // ====== NEW: Tính featuredDays & postDays ======
-        Integer featuredDays = null;
         Integer postDays = null;
 
-        if (p.getStatus() == Product.Status.PENDING_REVIEW && payment != null) {
+        if (payment != null && payment.getPostPackage() != null) {
+            Integer base = payment.getPostPackage().getBaseDurationDays();
+            postDays = (base != null) ? base : 30;
+        }
 
-            // Lấy trực tiếp từ package option + rule 30 ngày
-            if (payment.getPostPackageOption() != null &&
-                    payment.getPostPackageOption().getDurationDays() != null) {
-                featuredDays = payment.getPostPackageOption().getDurationDays();
+        // Payment info
+        if (payment != null && payment.getPostPackage() != null) {
+            builder.packageName(payment.getPostPackage().getName())
+                    .packageCode(payment.getPostPackage().getCode())
+                    .amount(payment.getAmount())
+                    .featuredDays(
+                            payment.getPostPackageOption() != null
+                                    ? payment.getPostPackageOption().getDurationDays()
+                                    : null)
+                    .postDays(postDays);
+        }
+        // ========== Type-specific fields ==========
+        switch (product.getType()) {
+            case VEHICLE -> {
+                // Vehicle-specific
+                if (product.getVehicleDetails().getModel() != null) {
+                    builder.modelId(product.getVehicleDetails().getModel().getId())
+                            .modelName(product.getVehicleDetails().getModel().getName());
+                }
+                if (product.getVehicleDetails().getVersion() != null) {
+                    builder.versionId(product.getVehicleDetails().getVersion().getId())
+                            .versionName(product.getVehicleDetails().getVersion().getName());
+                }
+                if (product.getVehicleDetails().getCategory() != null) {
+                    builder.categoryId(product.getVehicleDetails().getCategory().getId())
+                            .categoryName(product.getVehicleDetails().getCategory().getName());
+                }
+                builder.batteryHealthPercent(product.getVehicleDetails().getBatteryHealthPercent())
+                        .mileageKm(product.getVehicleDetails().getMileageKm()).year(product.getManufactureYear());
             }
-            postDays = 30;
-        } else {
-            // Đã duyệt/đang chạy: trả số ngày còn lại (không âm)
-            LocalDateTime now = ZonedDateTime.now(VIETNAM_ZONE).toLocalDateTime();
-            if (featuredEndAt != null) {
-                long d = ChronoUnit.DAYS.between(now, featuredEndAt);
-                featuredDays = (int) Math.max(d, 0);
+
+            case BATTERY -> {
+                // Battery-specific
+                if (product.getBatteryDetails().getBatteryType() != null) {
+                    builder.batteryTypeId(product.getBatteryDetails().getBatteryType().getId())
+                            .batteryType(product.getBatteryDetails().getBatteryType().getName());
+                }
+                builder.healthPercent(product.getBatteryDetails().getHealthPercent())
+                        .capacityKwh(product.getBatteryDetails().getCapacityKwh())
+                        .voltageV(product.getBatteryDetails().getVoltageV());
             }
-            if (expiresAt != null) {
-                long d = ChronoUnit.DAYS.between(now, expiresAt);
-                postDays = (int) Math.max(d, 0);
+
+            default -> {
+                // Handle other types if needed
             }
         }
-        // ===============================================
 
-        return PostVerifyResponse.builder()
-                .id(p.getId())
-                .status(p.getStatus())
-                .rejectReason(p.getRejectReason())
-                .title(p.getTitle())
-                .thumbnail(thumbnail)
-                .productType(p.getType())
-                .sellerName(p.getSeller() != null ? p.getSeller().getFullName() : null)
-                .sellerId(p.getSeller() != null ? p.getSeller().getId() : null)
-                .sellerPhone(p.getSellerPhone())
-                .createdAt(p.getCreatedAt())
-                .updateAt(p.getUpdatedAt())
-                .brandName(brandName)
-                .batteryType(batteryType)
-                .modelName(modelName)
-                .versionName(version)
-                .featuredEndAt(featuredEndAt)
-                .expiresAt(expiresAt)
-                .postDays(postDays)
-                .featuredDays(featuredDays)
-                .packageName(payment != null && payment.getPostPackage() != null
-                        ? payment.getPostPackage().getName()
-                        : null)
-                .amount(payment != null ? payment.getAmount() : null)
-                .build();
+        return builder.build();
     }
 
+    /**
+     * Overload method if you don't have payment info
+     */
+    public static PostVerifyResponse toResponse(Product product) {
+        return toResponse(product, null);
+    }
 }

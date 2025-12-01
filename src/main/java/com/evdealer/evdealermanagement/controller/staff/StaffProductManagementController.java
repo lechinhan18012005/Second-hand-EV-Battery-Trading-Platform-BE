@@ -5,6 +5,7 @@ import com.evdealer.evdealermanagement.dto.post.verification.PostVerifyResponse;
 import com.evdealer.evdealermanagement.entity.transactions.TransactionsHistory;
 import com.evdealer.evdealermanagement.service.implement.ProductService;
 import com.evdealer.evdealermanagement.service.implement.StaffService;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -28,7 +29,7 @@ public class StaffProductManagementController {
     @GetMapping("/by-status")
     @PreAuthorize("hasRole('ADMIN') or hasRole('STAFF')")
     public ResponseEntity<PageResponse<PostVerifyResponse>> getAllProductsWithStatus(@RequestParam String status,
-            @PageableDefault(page = 0, size = 12, sort = "createdAt", direction = Sort.Direction.ASC) Pageable pageable) {
+            @PageableDefault(page = 0, size = 12, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         try {
             log.info("Request → Get all products by status: {}", status);
             PageResponse<PostVerifyResponse> products = productService.getAllProductsWithStatus(status.toUpperCase(),
@@ -49,11 +50,12 @@ public class StaffProductManagementController {
 
     @GetMapping("/status/all")
     @PreAuthorize("hasRole('ADMIN') or hasRole('STAFF')")
-    public ResponseEntity<PageResponse<PostVerifyResponse>> getAllProductsWithStatusAll(
-            @PageableDefault(page = 0, size = 12, sort = "createdAt", direction = Sort.Direction.ASC) Pageable pageable) {
+    @Transactional(readOnly = true)
+    public ResponseEntity<PageResponse<PostVerifyResponse>> getAllProductsWithAllStatus(
+            @PageableDefault(page = 0, size = 12, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         try {
             log.info("Request → Get all products");
-            PageResponse<PostVerifyResponse> products = productService.getAllProductsWithStatusAll(pageable);
+            PageResponse<PostVerifyResponse> products = productService.getAllProductsWithAllStatus(pageable);
 
             if (products.getItems().isEmpty()) {
                 log.info("No  products found");

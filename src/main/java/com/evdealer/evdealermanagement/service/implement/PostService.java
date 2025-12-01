@@ -8,13 +8,21 @@ import com.evdealer.evdealermanagement.dto.post.common.ImageMeta;
 import com.evdealer.evdealermanagement.dto.post.common.ProductImageResponse;
 import com.evdealer.evdealermanagement.dto.post.vehicle.VehiclePostRequest;
 import com.evdealer.evdealermanagement.dto.post.vehicle.VehiclePostResponse;
+import com.evdealer.evdealermanagement.dto.vehicle.catalog.VehicleCatalogDTO;
+import com.evdealer.evdealermanagement.entity.account.Account;
 import com.evdealer.evdealermanagement.entity.battery.BatteryDetails;
 import com.evdealer.evdealermanagement.entity.product.Product;
 import com.evdealer.evdealermanagement.entity.product.ProductImages;
+import com.evdealer.evdealermanagement.entity.vehicle.Model;
+import com.evdealer.evdealermanagement.entity.vehicle.ModelVersion;
+import com.evdealer.evdealermanagement.entity.vehicle.VehicleBrands;
+import com.evdealer.evdealermanagement.entity.vehicle.VehicleCatalog;
+import com.evdealer.evdealermanagement.entity.vehicle.VehicleCategories;
 import com.evdealer.evdealermanagement.entity.vehicle.VehicleDetails;
 import com.evdealer.evdealermanagement.exceptions.AppException;
 import com.evdealer.evdealermanagement.exceptions.ErrorCode;
 import com.evdealer.evdealermanagement.mapper.product.ProductMapper;
+import com.evdealer.evdealermanagement.mapper.vehicle.VehicleCatalogMapper;
 import com.evdealer.evdealermanagement.repository.*;
 import com.evdealer.evdealermanagement.service.contract.IProductPostService;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -25,10 +33,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @Service
 @Transactional
@@ -49,11 +59,27 @@ public class PostService implements IProductPostService {
     private final AccountRepository accountRepository;
     private final VehicleModelVersionRepository vmvRepo;
     private final VehicleModelRepository vehicleModelRepository;
+    private final VehicleCatalogRepository vehicleCatalogRepository;
+    private final GeminiRestService geminiRestService;
 
     @Override
     public BatteryPostResponse createBatteryPost(String sellerId, BatteryPostRequest request,
             List<MultipartFile> images, String imagesMetaJson) {
         validateImages(images);
+
+        // 1. Lấy account 1 lần và xử lý lỗi nếu không tồn tại
+        Account account = accountRepository.findById(sellerId)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+
+        // 2. Check phone & email
+        boolean missingPhone = (account.getPhone() == null || account.getPhone().isBlank());
+        boolean missingEmail = (account.getEmail() == null || account.getEmail().isBlank());
+
+        if (missingPhone) {
+            throw new AppException(ErrorCode.PHONE_REQUIRED);
+        } else if (missingEmail) {
+            throw new AppException(ErrorCode.EMAIL_REQUIRED);
+        }
 
         Product product = productRepository.save(Product.builder()
                 .seller(accountRepository.findById(sellerId)
@@ -103,12 +129,26 @@ public class PostService implements IProductPostService {
                 .voltageV(bd.getVoltageV())
                 .images(imageDtos)
                 .build();
-
     }
 
     @Override
     public VehiclePostResponse createVehiclePost(String sellerId, VehiclePostRequest request,
             List<MultipartFile> images, String imagesMetaJson) {
+
+        // 1. Lấy account 1 lần và xử lý lỗi nếu không tồn tại
+        Account account = accountRepository.findById(sellerId)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+
+        // 2. Check phone & email
+        boolean missingPhone = (account.getPhone() == null || account.getPhone().isBlank());
+        boolean missingEmail = (account.getEmail() == null || account.getEmail().isBlank());
+
+        if (missingPhone) {
+            throw new AppException(ErrorCode.PHONE_REQUIRED);
+        } else if (missingEmail) {
+            throw new AppException(ErrorCode.EMAIL_REQUIRED);
+        }
+
         Product product = productRepository.save(Product.builder()
                 .seller(accountRepository.findById(sellerId)
                         .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND)))
@@ -139,6 +179,24 @@ public class PostService implements IProductPostService {
                         .orElseThrow(() -> new AppException(ErrorCode.VERSION_NOT_FOUND)) : null)
                 .build());
 
+        // Xử lý thông số kỹ thuật xe (nếu là sản phẩm xe)
+        if (isVehicleProduct(product)) {
+            log.debug("Product id={} is a vehicle product -> generating vehicle specs",
+                    product.getId());
+            try {
+                generateAndSaveVehicleSpecs(product);
+                log.debug("Vehicle specs generated successfully for product id={}",
+                        product.getId());
+            } catch (Exception e) {
+                log.error("Error while generating vehicle specs for product id={}: {}",
+                        product.getId(), e.getMessage(),
+                        e);
+                throw e;
+            }
+        } else {
+            log.debug("Product id={} is not a vehicle product, skipping specs generation", product.getId());
+        }
+
         List<ProductImageResponse> imageDtos = uploadAndSaveImages(product, images, imagesMetaJson);
         return VehiclePostResponse.builder()
                 .productId(product.getId())
@@ -167,6 +225,118 @@ public class PostService implements IProductPostService {
 
     }
 
+    private boolean isVehicleProduct(Product product) {
+        return product.getType() != null &&
+                "VEHICLE".equals(product.getType().name());
+    }
+
+    // Generate và Lưu thông số kỹ thuật
+    private void generateAndSaveVehicleSpecs(Product product) {
+        // 1. Kiểm tra NullPointerException: details có thể là null
+        VehicleDetails details = vehicleDetailsRepository.findByProductId(product.getId()).orElse(null);
+
+        // Đã sửa: Di chuyển kiểm tra details == null lên đầu
+        if (details == null) {
+            log.warn("Product ID {} is missing VehicleDetails. Cannot link catalog.",
+                    product.getId());
+            return;
+        }
+
+        ModelVersion version = details.getVersion();
+
+        if (version == null || version.getModel() == null) {
+            log.warn("Product ID {} is missing ModelVersion or Model. Cannot generate specs.", product.getId());
+            return;
+        }
+
+        // Lấy thông tin Model, Brand, Category
+        Model model = version.getModel();
+        VehicleBrands brand = model.getBrand();
+        VehicleCategories type = model.getVehicleType();
+        Short manufactureYear = product.getManufactureYear();
+
+        // Validation các trường bắt buộc
+        if (type == null) {
+            log.error("Model ID {} is missing VehicleType. Cannot generate specs.",
+                    model.getId());
+            return;
+        }
+
+        if (brand == null) {
+            log.error("Model ID {} is missing Brand. Cannot generate specs.",
+                    model.getId());
+            return;
+        }
+
+        // Chuẩn bị dữ liệu cho Gemini
+        String productName = product.getTitle();
+        String modelName = model.getName();
+        String brandName = brand.getName();
+        String versionName = version.getName();
+
+        if (manufactureYear == null) {
+            log.warn("Product {} missing manufacture year. Defaulting to current year.",
+                    product.getId());
+            manufactureYear = (short) LocalDateTime.now().getYear();
+        }
+
+        // *** ĐÃ SỬA: Kiểm tra Catalogue chỉ bằng Model và Year ***
+        Optional<VehicleCatalog> existingCatalog = vehicleCatalogRepository
+                // Giả định bạn đã tạo phương thức findByModelAndYear trong Repository
+                .findByModelAndYear(model, manufactureYear);
+
+        if (existingCatalog.isEmpty()) {
+            // Catalog chưa tồn tại → Generate mới bằng Gemini
+            log.info("Vehicle spec not found for Model ID {} Year {}. Generating new specs using Gemini...",
+                    model.getId(), manufactureYear);
+
+            try {
+                // Gọi Gemini để generate specs DTO
+                VehicleCatalogDTO specsDto = geminiRestService.getVehicleSpecs(
+                        productName, modelName, brandName, versionName, manufactureYear);
+
+                // Ánh xạ DTO sang Entity
+                VehicleCatalog newCatalog = VehicleCatalogMapper.mapFromDto(specsDto);
+
+                // Gán các foreign key & trường bắt buộc
+                newCatalog.setVersion(version);
+                newCatalog.setCategory(type);
+                newCatalog.setBrand(brand);
+                newCatalog.setModel(model);
+                newCatalog.setYear(manufactureYear);
+
+                // Lưu catalog vào DB
+                VehicleCatalog savedCatalog = vehicleCatalogRepository.save(newCatalog);
+                log.info("Successfully generated and saved new VehicleCatalog ID: {} for ModelVersion {}",
+                        savedCatalog.getId(), version.getId());
+
+                // Liên kết catalog vào VehicleDetails
+                details.setVehicleCatalog(savedCatalog);
+                vehicleDetailsRepository.save(details);
+                log.info("Successfully linked new VehicleCatalog to Product {}",
+                        product.getId());
+
+            } catch (Exception e) {
+                log.error("Failed to generate or save vehicle specs for Product ID {}: {}",
+                        product.getId(), e.getMessage(), e);
+            }
+        } else {
+            // Nếu catalog đã tồn tại, link nó vào VehicleDetails (nếu chưa link)
+            VehicleCatalog catalog = existingCatalog.get();
+
+            if (details.getVehicleCatalog() == null ||
+                    !details.getVehicleCatalog().getId().equals(catalog.getId())) {
+
+                details.setVehicleCatalog(catalog);
+                vehicleDetailsRepository.save(details);
+                log.info("Linked existing VehicleCatalog (ID: {}) to Product {}",
+                        catalog.getId(), product.getId());
+            } else {
+                log.info("VehicleCatalog already linked to Product {}", product.getId());
+            }
+        }
+    }
+
     // Support Method
     public void validateImages(List<MultipartFile> images) {
         if (images == null || images.isEmpty()) {
@@ -184,7 +354,7 @@ public class PostService implements IProductPostService {
                 throw new AppException(ErrorCode.IMAGE_TOO_LARGE);
             }
             String ct = image.getContentType() == null ? "" : image.getContentType();
-            if (!(ct.equals("image/jpeg") || ct.equals("image/png"))) {
+            if (!ct.startsWith("image/")) {
                 throw new AppException(ErrorCode.UNSUPPORTED_IMAGE_TYPE);
             }
         }

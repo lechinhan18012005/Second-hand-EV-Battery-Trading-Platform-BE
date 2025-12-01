@@ -187,6 +187,9 @@ public class EmailService {
         Context context = new Context();
         context.setVariable("productTitle", productTitle);
 
+        String renewalRequestUrl = "http://localhost:5173/post/manage";
+        context.setVariable("renewalRequestUrl", renewalRequestUrl);
+
         ZonedDateTime vnTime = expiresAt.atZone(VN);
         context.setVariable("expiryDate", vnTime.toLocalDateTime().format(DATE_FMT));
         context.setVariable("expiryTime", vnTime.toLocalDateTime().format(TIME_FMT));

@@ -50,7 +50,7 @@ public class Product extends BaseEntity {
     @JoinColumn(name = "seller_id", nullable = false)
     private Account seller;
 
-    @Column(name = "created_at", updatable = false, columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+    @Column(name = "created_at", columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
     private LocalDateTime createdAt;
 
     @Column(name = "updated_at")
@@ -100,10 +100,13 @@ public class Product extends BaseEntity {
     @Column(name = "featured_end_at")
     private LocalDateTime featuredEndAt;
 
-    @OneToOne(mappedBy = "product", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @Column(name = "start_renewal_at")
+    private LocalDateTime startRenewalAt;
+
+    @OneToOne(mappedBy = "product", cascade = CascadeType.ALL)
     private VehicleDetails vehicleDetails;
 
-    @OneToOne(mappedBy = "product", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToOne(mappedBy = "product", cascade = CascadeType.ALL)
     private BatteryDetails batteryDetails;
 
     @OneToMany(mappedBy = "product", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = false)

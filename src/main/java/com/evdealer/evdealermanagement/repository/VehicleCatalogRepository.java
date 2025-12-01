@@ -17,4 +17,6 @@ public interface VehicleCatalogRepository extends JpaRepository<VehicleCatalog, 
             String brandId,
             Model model,
             Short year);
+
+    Optional<VehicleCatalog> findByModelAndYear(Model model, Short manufactureYear);
 }

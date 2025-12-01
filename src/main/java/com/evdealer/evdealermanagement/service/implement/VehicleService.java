@@ -3,6 +3,8 @@ package com.evdealer.evdealermanagement.service.implement;
 import com.evdealer.evdealermanagement.dto.post.common.ProductImageResponse;
 import com.evdealer.evdealermanagement.dto.post.vehicle.VehiclePostRequest;
 import com.evdealer.evdealermanagement.dto.post.vehicle.VehiclePostResponse;
+import com.evdealer.evdealermanagement.dto.product.detail.ProductDetail;
+import com.evdealer.evdealermanagement.dto.product.detail.ProductImageDto;
 import com.evdealer.evdealermanagement.dto.product.similar.SimilarProductResponse;
 import com.evdealer.evdealermanagement.dto.vehicle.brand.VehicleBrandsRequest;
 import com.cloudinary.Cloudinary;
@@ -17,10 +19,7 @@ import com.evdealer.evdealermanagement.dto.vehicle.model.VehicleModelRequest;
 import com.evdealer.evdealermanagement.dto.vehicle.model.VehicleModelResponse;
 import com.evdealer.evdealermanagement.dto.vehicle.model.VehicleModelVersionRequest;
 import com.evdealer.evdealermanagement.dto.vehicle.model.VehicleModelVersionResponse;
-import com.evdealer.evdealermanagement.dto.vehicle.update.UpdateModelRequest;
-import com.evdealer.evdealermanagement.dto.vehicle.update.UpdateVehicleModelResponse;
-import com.evdealer.evdealermanagement.dto.vehicle.update.UpdateVehicleVersionResponse;
-import com.evdealer.evdealermanagement.dto.vehicle.update.UpdateVersionRequest;
+import com.evdealer.evdealermanagement.dto.vehicle.update.*;
 import com.evdealer.evdealermanagement.entity.product.Product;
 import com.evdealer.evdealermanagement.entity.product.ProductImages;
 import com.evdealer.evdealermanagement.entity.vehicle.*;
@@ -43,10 +42,7 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -424,13 +420,17 @@ public class VehicleService {
     }
 
     @Transactional
-    public VehiclePostResponse updateVehiclePost(String productId, VehiclePostRequest request,
+    public VehiclePostResponse updateVehiclePost(String currentUserId, String productId, VehicleUpdateProductRequest request,
             List<MultipartFile> images, String imagesMetaJson) {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new AppException(ErrorCode.PRODUCT_NOT_FOUND));
 
         if (product.getStatus() != Product.Status.DRAFT) {
             throw new AppException(ErrorCode.PRODUCT_NOT_DRAFT);
+        }
+
+        if(!product.getSeller().getId().equals(currentUserId)){
+            throw new AppException(ErrorCode.NOT_CURRENT_USER);
         }
 
         VehicleDetails details = vehicleDetailsRepository.findByProductId(product.getId())
@@ -447,7 +447,6 @@ public class VehicleService {
             product.setManufactureYear(request.getYear());
             product.setUpdatedAt(VietNamDatetime.nowVietNam());
 
-            details.setProduct(product);
             details.setBrand(vehicleBrandsRepository.findById(request.getBrandId())
                     .orElseThrow(() -> new AppException(ErrorCode.BRAND_NOT_FOUND)));
             details.setCategory(vehicleCategoryRepository.findById(request.getCategoryId())
@@ -472,7 +471,19 @@ public class VehicleService {
 
         if (images != null && !images.isEmpty()) {
 
-            // xóa ảnh cũ trong database
+            List<ProductImages> oldImages = productImagesRepository.findByProduct(product);
+
+            for (ProductImages img : oldImages) {
+                try {
+                    if (img.getPublicId() != null) {
+                        cloudinary.uploader().destroy(img.getPublicId(), ObjectUtils.emptyMap());
+                        log.info("Deleted old image from Cloudinary: {}", img.getPublicId());
+                    }
+                } catch (Exception e) {
+                    log.warn("Failed to delete image {}: {}", img.getPublicId(), e.getMessage());
+                }
+            }
+
             productImagesRepository.deleteAllByProduct(product);
             productImagesRepository.flush();
 
@@ -485,16 +496,142 @@ public class VehicleService {
                             .product(product)
                             .imageUrl(dto.getUrl())
                             .isPrimary(dto.isPrimary())
+                            .position(dto.getPosition())
+                            .build())
+                    .collect(Collectors.toList());
+
+            product.getImages().addAll(newImages);
+        }
+        vehicleDetailsRepository.save(details);
+        productRepository.save(product);
+
+        return VehicleMapper.toVehiclePostResponse(product, details, request, imageDtos);
+    }
+
+    @Transactional
+    public ProductDetail updateVehiclePostRejected(String currentUserId, String productId, VehicleUpdateProductRequest request,
+                                                 List<MultipartFile> images, String imagesMetaJson) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new AppException(ErrorCode.PRODUCT_NOT_FOUND));
+
+        if(!product.getSeller().getId().equals(currentUserId)){
+            throw new AppException(ErrorCode.NOT_CURRENT_USER);
+        }
+
+        if (product.getStatus() != Product.Status.REJECTED) {
+            throw new AppException(ErrorCode.PRODUCT_NOT_REJECTED);
+        }
+
+        VehicleDetails details = vehicleDetailsRepository.findByProductId(product.getId())
+                .orElseThrow(() -> new AppException(ErrorCode.VEHICLE_NOT_FOUND));
+
+        if (request != null) {
+            product.setTitle(request.getTitle());
+            product.setDescription(request.getDescription());
+            product.setPrice(request.getPrice());
+            product.setCity(request.getCity());
+            product.setDistrict(request.getDistrict());
+            product.setWard(request.getWard());
+            product.setAddressDetail(request.getAddressDetail());
+            product.setManufactureYear(request.getYear());
+            product.setUpdatedAt(VietNamDatetime.nowVietNam());
+
+            details.setBrand(vehicleBrandsRepository.findById(request.getBrandId())
+                    .orElseThrow(() -> new AppException(ErrorCode.BRAND_NOT_FOUND)));
+            details.setCategory(vehicleCategoryRepository.findById(request.getCategoryId())
+                    .orElseThrow(() -> new AppException(ErrorCode.CATEGORY_NOT_FOUND)));
+            details.setModel(vmRepository.findById(request.getModelId())
+                    .orElseThrow(() -> new AppException(ErrorCode.MODEL_NOT_FOUND)));
+            details.setVersion(vmvRepository.findById(request.getVersionId())
+                    .orElseThrow(() -> new AppException(ErrorCode.VERSION_NOT_FOUND)));
+            details.setMileageKm(request.getMileageKm());
+            details.setBatteryHealthPercent(request.getBatteryHealthPercent());
+
+            vehicleDetailsRepository.save(details);
+        }
+
+        if (images != null) {
+            images = images.stream()
+                    .filter(file -> file != null && !file.isEmpty())
+                    .toList();
+        }
+
+        List<ProductImageResponse> imageDtos = null;
+
+        if (images != null && !images.isEmpty()) {
+
+            List<ProductImages> oldImages = productImagesRepository.findByProduct(product);
+
+            for (ProductImages img : oldImages) {
+                try {
+                    if (img.getPublicId() != null) {
+                        cloudinary.uploader().destroy(img.getPublicId(), ObjectUtils.emptyMap());
+                        log.info("Deleted old image from Cloudinary: {}", img.getPublicId());
+                    }
+                } catch (Exception e) {
+                    log.warn("Failed to delete image {}: {}", img.getPublicId(), e.getMessage());
+                }
+            }
+
+            productImagesRepository.deleteAllByProduct(product);
+            productImagesRepository.flush();
+
+            imageDtos = postService.uploadAndSaveImages(product, images, imagesMetaJson);
+
+            product.getImages().clear();
+
+            List<ProductImages> newImages = imageDtos.stream()
+                    .map(dto -> ProductImages.builder()
+                            .product(product)
+                            .imageUrl(dto.getUrl())
+                            .isPrimary(dto.isPrimary())
+                            .position(dto.getPosition())
                             .build())
                     .collect(Collectors.toList());
 
             product.getImages().addAll(newImages);
         }
 
+        product.setStatus(Product.Status.PENDING_REVIEW);
+        vehicleDetailsRepository.save(details);
         productRepository.save(product);
+        productRepository.flush();
 
-        return VehicleMapper.toVehiclePostResponse(product, details, request, imageDtos);
+        ProductDetail p = ProductDetail.fromEntity(product);
+
+        return p;
     }
+
+    @Transactional
+    public ProductDetail getVehiclePostById(String productId) {
+
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new AppException(ErrorCode.PRODUCT_NOT_FOUND));
+
+        VehicleDetails details = vehicleDetailsRepository.findByProductId(productId)
+                .orElseThrow(() -> new AppException(ErrorCode.VEHICLE_NOT_FOUND));
+
+        // KHÔNG dùng ProductImageResponse ở đây
+        List<ProductImages> images = productImagesRepository.findByProduct(product);
+
+        // Tạo DTO vehicle full theo mapper chung
+        ProductDetail dto = ProductDetail.fromEntity(product);
+
+        // Gắn lại ảnh đúng kiểu DTO
+        dto.setProductImagesList(
+                images.stream()
+                        .sorted(Comparator.comparing(
+                                ProductImages::getPosition,
+                                Comparator.nullsLast(Integer::compareTo)))
+                        .map(ProductImageDto::fromEntity)
+                        .collect(Collectors.toList())
+        );
+
+        return dto;
+    }
+
+
+
 
     @Transactional
     public List<SimilarProductResponse> getSimilarVehicles(String productId) {

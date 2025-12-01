@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 import org.springframework.data.jpa.domain.Specification;
 
 import java.math.BigDecimal;
+import java.util.UUID;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class ProductSpecs {
@@ -36,7 +37,7 @@ public final class ProductSpecs {
             Join<Object, Object> vehicle = root.join("vehicleDetails", JoinType.LEFT);
             //JOIN VehicleDetails -> VehicleBrands
             Join<Object, Object> brand = vehicle.join("brand", JoinType.LEFT);
-            return cb.equal(brand.get("id"), brandId);
+            return cb.equal(brand.get("id"), brandId.trim());
         };
     }
 
@@ -46,9 +47,32 @@ public final class ProductSpecs {
             query.distinct(true);
             Join<Object, Object> battery = root.join("batteryDetails", JoinType.LEFT);
             Join<Object, Object> brand = battery.join("brand", JoinType.LEFT);
-            return cb.equal(brand.get("id"), brandId);
+            return cb.equal(brand.get("id"), brandId.trim());
         };
     }
+
+    public static Specification<Product> hasAnyBrand(String brandId) {
+        return (root, query, cb) -> {
+            if (brandId == null || brandId.trim().isEmpty()) {
+                return null; // không filter brand nếu FE không gửi
+            }
+            query.distinct(true);
+
+            // join 2 nhánh
+            var vehicleJoin = root.join("vehicleDetails", JoinType.LEFT);
+            var vehicleBrand = vehicleJoin.join("brand", JoinType.LEFT);
+
+            var batteryJoin = root.join("batteryDetails", JoinType.LEFT);
+            var batteryBrand = batteryJoin.join("brand", JoinType.LEFT);
+
+            // coalesce(vBrand.id, bBrand.id) = :brandId
+            return cb.equal(
+                    cb.coalesce(vehicleBrand.get("id"), batteryBrand.get("id")),
+                    brandId.trim() // coalesce giúp lấy ra cái ko null
+            );
+        };
+    }
+
 
     public static Specification<Product> cityEq(String city) {
         return (r, q, cb) -> isBlank(city) ? null : cb.equal(cb.lower(r.get("city")), city.trim().toLowerCase());
@@ -77,11 +101,6 @@ public final class ProductSpecs {
     public static Specification<Product> all() {
         return ((root, query, criteriaBuilder) -> criteriaBuilder.conjunction());
     }
-
-
-
-
-
 
     private static boolean isBlank(String s) {
         return s == null || s.trim().isEmpty();

@@ -45,7 +45,7 @@ public class PurchaseRequestController {
         log.info("Seller responding to purchase request via POST: {}", dto.getRequestId());
         PurchaseRequestResponse response = purchaseRequestService.respondToPurchaseRequest(dto);
         return ResponseEntity.ok(response);
-    }
+     }
 
     // -----------------------------
     // 3. Seller phản hồi qua Email (GET)

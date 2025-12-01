@@ -8,4 +8,6 @@ import java.util.Optional;
 
 public interface AuthProviderRepository extends JpaRepository<AuthProvider, String> {
     Optional<AuthProvider> findByProviderAndProviderUserId(Provider provider, String providerUserId);
+
+    boolean existsByAccountId(String accountId);
 }

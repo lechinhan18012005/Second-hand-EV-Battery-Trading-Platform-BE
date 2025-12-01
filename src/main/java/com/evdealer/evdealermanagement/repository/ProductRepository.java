@@ -52,13 +52,22 @@ public interface ProductRepository extends JpaRepository<Product, String>, JpaSp
 
   Optional<Product> findById(@NotNull String productId);
 
+  @Query("SELECT DISTINCT p FROM Product p " +
+          "LEFT JOIN FETCH p.images " +
+          "WHERE p.status = :status")
+  Page<Product> findByStatusWithImages(@Param("status") Product.Status status, Pageable pageable);
+
+  @Query("SELECT DISTINCT p FROM Product p " +
+          "LEFT JOIN FETCH p.images")
+  Page<Product> findAllWithImages(Pageable pageable);
+
   List<Product> findByStatus(Product.Status status);
 
   Page<Product> findByStatus(Product.Status status, Pageable pageable);
 
   Page<Product> findByStatusAndType(Product.Status status, Product.ProductType type, Pageable pageable);
 
-  @Query("SELECT p FROM Product p WHERE p.seller.id = :sellerId AND p.status = :status ORDER BY p.createdAt DESC")
+  @Query("SELECT p FROM Product p WHERE p.seller.id = :sellerId AND p.status = :status ORDER BY p.updatedAt DESC")
   List<Product> findBySellerAndStatus(@Param("sellerId") String sellerId, @Param("status") Product.Status status);
 
   Optional<Product> findByIdAndSellerId(String id, String sellerId);
@@ -91,5 +100,8 @@ public interface ProductRepository extends JpaRepository<Product, String>, JpaSp
   Page<Product> findBySeller_IdAndStatus(String sellerId, Product.Status status, Pageable pageable);
 
   Page<Product> findBySeller_IdAndStatusIn(String sellerId, List<Product.Status> statuses, Pageable pageable);
+
+  @Query("SELECT p FROM Product p WHERE p.startRenewalAt IS NOT NULL AND p.startRenewalAt <= :now")
+  List<Product> findByStartRenewalAtBeforeAndStartRenewalAtNotNull(@Param("now") LocalDateTime now);
 
 }

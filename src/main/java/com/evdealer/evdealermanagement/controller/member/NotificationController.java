@@ -27,7 +27,7 @@ public class NotificationController {
     @GetMapping
     @PreAuthorize("hasRole('MEMBER')")
     public ResponseEntity<Page<NotificationResponse>> list(@AuthenticationPrincipal CustomAccountDetails user,
-            @PageableDefault(page = 0, size = 10) Pageable pageable) {
+            @PageableDefault(page = 0, size = 10, sort = "createdAt",  direction = Sort.Direction.DESC) Pageable pageable) {
         String accountId = user.getAccountId();
         Page<NotificationResponse> notifications = notificationService.listMyNotifications(accountId, pageable);
         log.debug("User {} fetched {} notifications (page {})",

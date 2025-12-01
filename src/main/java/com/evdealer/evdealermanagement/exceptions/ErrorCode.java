@@ -16,11 +16,14 @@ public enum ErrorCode {
     UNAUTHORIZED(401, "Invalid or expired token", HttpStatus.UNAUTHORIZED),
     FORBIDDEN(403, "You do not have permission to access this resource", HttpStatus.FORBIDDEN),
     INVALID_CAPTCHA(404, "Invalid captcha", HttpStatus.BAD_REQUEST),
+    INVALID_PHONE(405, "Invalid phone number", HttpStatus.BAD_REQUEST),
+    INVALID_EMAIL(406, "Invalid email", HttpStatus.BAD_REQUEST),
 
     // Adjusted 404 codes to ensure uniqueness for specific resource types
     USER_NOT_FOUND(4040, "User not found", HttpStatus.NOT_FOUND),
     PRODUCT_NOT_FOUND(4041, "Product not found", HttpStatus.NOT_FOUND),
     RESOURCE_NOT_FOUND(4042, "Requested resource not found", HttpStatus.NOT_FOUND),
+    NOT_CURRENT_USER(4043, "Not current user", HttpStatus.FORBIDDEN),
 
     INTERNAL_ERROR(500, "Internal server error", HttpStatus.INTERNAL_SERVER_ERROR),
     SERVICE_UNAVAILABLE(503, "Service temporarily unavailable", HttpStatus.SERVICE_UNAVAILABLE),
@@ -90,10 +93,18 @@ public enum ErrorCode {
     INVALID_ID_PACKAGE(1516, "Invalid Id Package", HttpStatus.BAD_REQUEST),
     PURCHASE_REQUEST_NOT_FOUND(1550, "Purchase request not found", HttpStatus.NOT_FOUND),
     PAYMENT_NOT_RETRIABLE(1010, "Payment cannot be retried", HttpStatus.BAD_REQUEST),
+    PRODUCT_NOT_PENDING_PAYMENT(1011, "Product is not pending payment", HttpStatus.BAD_REQUEST),
+    PAYMENT_ALREADY_COMPLETED(1012, "Payment is already completed", HttpStatus.BAD_REQUEST),
+    PAYMENT_METHOD_MISSING(1013, "Payment method is missing", HttpStatus.BAD_REQUEST),
+    INVALID_PAYMENT_METHOD(1014, "Payment method is invalid", HttpStatus.BAD_REQUEST),
+    PAYMENT_METHOD_UNSUPPORTED(1015, "Payment method is not supported", HttpStatus.BAD_REQUEST),
+    PRODUCT_NOT_REJECTED(1016, "Product is not rejected", HttpStatus.BAD_REQUEST),
 
     // --- Wishlist Errors (Codes 1600 - 1699) ---
     WISHLIST_NOT_FOUND(1601, "Wishlist not found", HttpStatus.NOT_FOUND),
     DUPLICATE_RESOURCE(1602, "Resource already exists", HttpStatus.CONFLICT),
+    LOCAL_CANNOT_CHANGE(1603, "Local account cannot change phone number", HttpStatus.BAD_REQUEST),
+    PROVIDER_CANNOT_CHANGE(1604, "Provider cannot change email", HttpStatus.BAD_REQUEST),
 
     // --- Posting Errors (Codes 1700 - 1799) ---
     // Moved from conflicting 10xx range to dedicated 17xx range
@@ -139,6 +150,8 @@ public enum ErrorCode {
 
     // -APPROVAL (3100-3200)
     DATE_MUST_REQUIRED(3100, "Date is required", HttpStatus.BAD_REQUEST);
+
+
 
     private final int code;
     private final String message;

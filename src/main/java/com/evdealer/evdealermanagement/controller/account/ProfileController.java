@@ -3,31 +3,19 @@ package com.evdealer.evdealermanagement.controller.account;
 import com.evdealer.evdealermanagement.dto.account.profile.AccountProfileResponse;
 import com.evdealer.evdealermanagement.dto.account.profile.AccountUpdateRequest;
 import com.evdealer.evdealermanagement.dto.account.profile.ProfilePublicDto;
+import com.evdealer.evdealermanagement.dto.product.detail.ProductDetail;
 import com.evdealer.evdealermanagement.service.implement.ProfileService;
 import com.evdealer.evdealermanagement.utils.JsonValidationUtils;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-
-import jakarta.validation.ConstraintViolation;
-import jakarta.validation.Valid;
-import jakarta.validation.Validator;
 import lombok.RequiredArgsConstructor;
-import org.springframework.core.MethodParameter;
+import org.springframework.data.domain.Page;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
-import org.springframework.validation.BeanPropertyBindingResult;
-import org.springframework.validation.FieldError;
-import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
-import java.lang.reflect.Method;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.List;
 
 @RestController
 @RequestMapping("/profile")
@@ -66,8 +54,17 @@ public class ProfileController {
 
 
     @GetMapping("/public")
-    public ResponseEntity<ProfilePublicDto> getProfilePublic(@RequestParam String username) {
-        return ResponseEntity.ok(profileService.getPublicProfile(username));
+    public ResponseEntity<ProfilePublicDto> getProfilePublic(@RequestParam String sellerId) {
+        return ResponseEntity.ok(profileService.getPublicProfile(sellerId));
     }
 
+    @GetMapping("/public/products/active")
+    public ResponseEntity<List<ProductDetail>> getActiveProducts(@RequestParam String sellerId) {
+        return ResponseEntity.ok(profileService.getActiveProductsOfSeller(sellerId));
+    }
+
+    @GetMapping("/public/products/sold")
+    public ResponseEntity<List<ProductDetail>> getSoldProducts(@RequestParam String sellerId) {
+        return ResponseEntity.ok(profileService.getSoldProductsOfSeller(sellerId));
+    }
 }

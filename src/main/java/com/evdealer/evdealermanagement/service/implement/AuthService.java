@@ -40,6 +40,10 @@ public class AuthService {
             throw new AppException(ErrorCode.INVALID_CAPTCHA);
         }
 
+        if(!Utils.validatePhoneNumber(phone)) {
+            throw new AppException(ErrorCode.INVALID_PHONE);
+        }
+
         String username = accountRepository.findUsernameByPhone(phone);
 
         Account account = accountRepository.findByUsername(username)
@@ -64,6 +68,10 @@ public class AuthService {
         String phone = request.getPhone().trim();
         String fullName = request.getFullName().trim();
         // String email = request.getEmail().trim();
+
+        if(!Utils.validatePhoneNumber(phone)) {
+            throw new AppException(ErrorCode.INVALID_PHONE);
+        }
 
         // Check duplicate phone
         if (accountRepository.findByPhone(phone).isPresent()) {
@@ -113,6 +121,10 @@ public class AuthService {
     public AccountRegisterResponse registerStaffAccount(AccountRegisterRequest request) {
         String phone = request.getPhone().trim();
         String fullName = request.getFullName().trim();
+
+        if(!Utils.validatePhoneNumber(phone)) {
+            throw new AppException(ErrorCode.INVALID_PHONE);
+        }
 
         if (accountRepository.findByPhone(phone).isPresent()) {
             throw new AppException(ErrorCode.PHONE_ALREADY_EXISTS);

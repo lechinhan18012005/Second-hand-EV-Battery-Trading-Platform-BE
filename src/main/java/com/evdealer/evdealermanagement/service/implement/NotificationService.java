@@ -14,12 +14,15 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.HashMap;
 import java.util.Map;
 
 
@@ -30,7 +33,8 @@ public class NotificationService {
 
     private final NotificationRepository notificationRepository;
     private final AccountRepository accountRepo;
-    private final NotificationMapper  mapper;
+    private final NotificationMapper mapper;
+    private final SimpMessagingTemplate messagingTemplate;
 
     @Transactional
     public Notification create(String accountId, String title, String content, Notification.NotificationType type, String refId) {
@@ -50,9 +54,21 @@ public class NotificationService {
     }
 
     @Transactional
-    public void createAndPush(String accountId, String title, String content,Notification.NotificationType type, String refId) {
-        create(accountId, title, content, type, refId);
+    public void createAndPush(String accountId, String title, String content, Notification.NotificationType type, String refId) {
+        Notification notification = create(accountId, title, content, type, refId);
 
+        NotificationResponse response = mapper.toDTO(notification);
+
+        try {
+            messagingTemplate.convertAndSendToUser(
+                    accountId,
+                    "/queue/notifications",
+                    response
+            );
+            log.info("✅ Pushed realtime notification to user: {}", accountId);
+        } catch (Exception e) {
+            log.error("❌ Failed to push realtime notification to user: {}", accountId, e);
+        }
     }
 
     @Transactional(readOnly = true)
@@ -63,7 +79,7 @@ public class NotificationService {
 
 
     @Transactional
-    public NotificationResponse markAsRead(String accountId, String notificationId){
+    public NotificationResponse markAsRead(String accountId, String notificationId) {
         Notification n = notificationRepository.findById(notificationId)
                 .orElseThrow(() -> new EntityNotFoundException("Notification not found"));
 
@@ -71,6 +87,9 @@ public class NotificationService {
             n.setRead(true);
             notificationRepository.save(n);
             log.info("User {} marked notification {} as read", accountId, notificationId);
+
+            // Push cập nhật unread count
+            pushUnreadCountUpdate(accountId);
         }
         return mapper.toDTO(n);
     }
@@ -79,6 +98,10 @@ public class NotificationService {
     public int markAllAsRead(String accountId) {
         int updated = notificationRepository.markAllAsReadByAccountId(accountId);
         log.info("User {} marked {} notifications as read", accountId, updated);
+
+        if (updated > 0) {
+            pushUnreadCountUpdate(accountId);
+        }
         return updated;
     }
 
@@ -114,6 +137,11 @@ public class NotificationService {
         notificationRepository.delete(n);
         log.info("User {} deleted notification {} (force={})", accountId, notificationId, force);
 
+        //Push cập nhật unread count nếu xóa notification chưa đọc
+        if (!n.isRead()) {
+            pushUnreadCountUpdate(accountId);
+        }
+
         return Map.of(
                 "success", true,
                 "message", force
@@ -125,7 +153,7 @@ public class NotificationService {
     @Transactional
     public Map<String, Object> deleteAll(String accountId, boolean forceDeleteUnread) {
         long unreadCount = notificationRepository.countUnreadByAccountId(accountId);
-        if(unreadCount > 0 && !forceDeleteUnread) {
+        if (unreadCount > 0 && !forceDeleteUnread) {
             String message = "Bạn còn " + unreadCount + " thông báo chưa đọc. " +
                     "Vui lòng đọc hoặc xác nhận xóa tất cả.";
             log.warn("User {} tried to delete all notifications while {} unread remain", accountId, unreadCount);
@@ -137,6 +165,9 @@ public class NotificationService {
         }
         int deleted = notificationRepository.deleteAllByAccountId(accountId);
         log.info("User {} deleted {} notifications (force={})", accountId, deleted, forceDeleteUnread);
+
+        pushUnreadCountUpdate(accountId);
+
         return Map.of(
                 "success", true,
                 "message", "Đã xóa tất cả thông báo" + (forceDeleteUnread ? " (bao gồm cả chưa đọc)" : ""),
@@ -144,8 +175,18 @@ public class NotificationService {
         );
     }
 
-
-
-
+    private void pushUnreadCountUpdate(String accountId) {
+        try {
+            long unreadCount = countUnread(accountId);
+            messagingTemplate.convertAndSendToUser(
+                    accountId,
+                    "/queue/unread-count",
+                    Map.of("unreadCount", unreadCount)
+            );
+            log.debug("Pushed unread count update to user {}: {}", accountId, unreadCount);
+        } catch (Exception e) {
+            log.error("Failed to push unread count to user {}", accountId, e);
+        }
+    }
 
 }
